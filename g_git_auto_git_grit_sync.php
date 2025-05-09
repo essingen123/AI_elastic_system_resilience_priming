@@ -1,386 +1,370 @@
 <?php
-// sync_master_interactive.php - Refined GitHub Sync & Tools Script
+// g_git_auto_git_grit_sync.php
+// Version: 2023-10-28_GitGrit_v1.2_Bootstrap
+date_default_timezone_set('UTC');
+$scriptVersion = "GitGrit_v1.2_Bootstrap (" . date('Y-m-d') . ")";
 
-$configFile = ".github_sync_repo_url.txt";
+$thisScriptName = basename(__FILE__); // Get the name of this PHP script itself
+$configFileName = "g_git_auto_git_grit_sync_2_config_4_humains_etc_config.vonBaronAfNullConfig";
+$gShellScriptName = "g.sh";
+$gLauncherName = "g";
 $defaultBranch = "main";
-$repoUrlHttps = '';
-$repoUrlSsh = '';
 
-// --- (Helper functions: executeCommand, captureCommandOutput, askUser, URL helpers, isGhCliInstalled, generateCoolRepoName, generateCoolCommitMessage - remain the same as your latest version) ---
-// --- Helper Function to Execute Shell Commands ---
+// Emojis
+$e_sparkle = "✨"; $e_config_file = "⚙️"; $e_link = "🔗"; $e_rocket = "🚀"; $e_wrench = "🔧";
+$e_floppy = "💾"; $e_question = "❓"; $e_warn = "⚠️"; $e_info = "ℹ️";
+$e_ok = "✅"; $e_party = "🎉"; $e_git = "🐙"; $e_sync = "🔄"; $e_toad = "🐸"; $e_bash = "🐧"; // Penguin for shell
+
+echo "$e_sparkle G-Git Auto Git Grit Sync - v{$scriptVersion} $e_sparkle\n";
+echo "Run timestamp: " . date('Y-m-d H:i:s T') . "\n";
+echo "---------------------------------------------------\n";
+
+// --- Helper Functions ---
 function executeCommand($command, &$output_lines = [], &$return_var = null, $show_output = true) {
-    echo "[CMD] $command\n";
-    $full_command = $command . ' 2>&1'; // Capture stderr to stdout
+    global $e_git, $e_warn; // Access global emojis
+    echo "$e_git [CMD] $command\n";
+    $full_command = $command . ' 2>&1';
     $output_lines = [];
-    
     if ($show_output) {
-        passthru($full_command, $passthru_return_val);
-        $return_var = $passthru_return_val;
+        passthru($full_command, $passthru_return_val); $return_var = $passthru_return_val;
     } else {
-        exec($full_command, $output_lines, $exec_return_val);
-        $return_var = $exec_return_val;
+        exec($full_command, $output_lines, $exec_return_val); $return_var = $exec_return_val;
     }
-
     if ($return_var !== 0) {
         $is_git_commit = (strpos($command, "git commit") === 0);
         $is_nothing_to_commit = false;
         if ($is_git_commit && !$show_output && !empty($output_lines)) {
             foreach($output_lines as $line) {
                 if (strpos($line, "nothing to commit") !== false || strpos($line, "no changes added to commit") !== false) {
-                    $is_nothing_to_commit = true;
-                    break;
+                    $is_nothing_to_commit = true; break;
                 }
             }
         }
         if (!$is_nothing_to_commit) {
-            echo "[ERROR] Command failed with exit code $return_var: $command\n";
-            if (!$show_output && !empty($output_lines)) {
-                foreach ($output_lines as $line) { echo "[OUTPUT] $line\n"; }
-            }
+            echo "$e_warn [ERROR] Command failed (code $return_var): $command\n";
+            if (!$show_output && !empty($output_lines)) { foreach ($output_lines as $line) { echo "[OUTPUT] $line\n"; } }
         }
-        return false; 
+        return false;
     }
     return true;
 }
 
 function captureCommandOutput($command, &$return_var = null) {
     $output_lines = [];
-    if (executeCommand($command, $output_lines, $return_var, false)) {
-        return implode("\n", $output_lines);
-    }
+    if (executeCommand($command, $output_lines, $return_var, false)) return implode("\n", $output_lines);
     return null;
 }
 
 function askUser($prompt, $default = '') {
-    echo "[ACTION] $prompt" . ($default ? " [$default]" : "") . ": ";
+    global $e_question; // Access global emoji
+    echo "$e_question [ACTION] $prompt" . ($default ? " [$default]" : "") . ": ";
     $input = trim(fgets(STDIN));
     return $input === '' ? $default : $input;
 }
 
-function isValidGithubHttpsUrl($url) {
-    return preg_match('|^https://github.com/([^/]+)/([^/.]+?)(\.git)?$|', $url);
-}
-
+function isValidGithubHttpsUrl($url) { return preg_match('|^https://github.com/([^/]+)/([^/.]+?)(\.git)?$|', $url); }
 function convertToSshUrl($httpsUrl) {
-    if (preg_match('|^https://github.com/([^/]+)/([^/.]+?)(\.git)?$|', $httpsUrl, $matches)) {
-        return "git@github.com:{$matches[1]}/{$matches[2]}.git";
-    }
+    if (preg_match('|^https://github.com/([^/]+)/([^/.]+?)(\.git)?$|', $httpsUrl, $matches)) return "git@github.com:{$matches[1]}/{$matches[2]}.git";
     return null;
 }
 
-function convertToHttpsUrl($sshOrHttpsUrl) {
-    if (isValidGithubHttpsUrl($sshOrHttpsUrl)) {
-        return preg_replace('/\.git$/', '', $sshOrHttpsUrl);
-    }
-    if (preg_match('|^git@github\.com:([^/]+)/([^/.]+?)\.git$|', $sshOrHttpsUrl, $matches)) {
-        return "https://github.com/{$matches[1]}/{$matches[2]}";
-    }
-    return null;
-}
-
-function isGhCliInstalled() {
-    @exec('gh --version 2>&1', $output, $return_var);
-    return $return_var === 0;
-}
-
-function generateCoolRepoName() { // Using your latest version of this
-    $adjectives = [
-        'Enchanted', 'Mystic', 'Whispering', 'Golden', 'Starry', 'Dreamy', 'Fabled',
-        'Wondrous', 'Sunlit', 'Moonlit', 'Silent', 'Soaring', 'Hidden', 'Ancient',
-        'Verdant', 'Azure', 'Crimson', 'Sparkling', 'Forgotten', 'Timeless', 'Zephyr',
-        'Crystal', 'Ethereal', 'Radiant', 'Celestial', 'Arcane', 'Vivid'
-    ];
-    $nouns = [
-        'Dragon', 'Sprite', 'Phoenix', 'Unicorn', 'Griffin', 'Scroll', 'Elixir', 'Gem',
-        'Talisman', 'Amulet', 'Oracle', 'Portal', 'Labyrinth', 'Citadel', 'Grove',
-        'Willow', 'River', 'Comet', 'Nebula', 'Sanctuary', 'Meadow', 'Quest', 'Echo',
-        'Harbor', 'Spire', 'Chalice', 'Glyph', 'Relic', 'Beacon'
-    ];
-    $adj = $adjectives[array_rand($adjectives)];
-    $noun = $nouns[array_rand($nouns)];
-    $dirName = basename(getcwd());
-    $dirNameSanitized = strtolower(preg_replace('/[^a-zA-Z0-9_]+/', '_', str_replace(' ', '_', $dirName)));
-    if (empty($dirNameSanitized) || strlen($dirNameSanitized) < 3 || $dirNameSanitized === "scripts" || $dirNameSanitized === "php_scripts") {
-        $dirNameSanitized = "codex";
-    }
-    return "{$adj}{$noun}_{$dirNameSanitized}_" . date('Ymd');
-}
-
-function generateCoolCommitMessage($type = 'sync', $repoName = null) { // Using your latest version
-    $actions_sync = ["Sync", "Update", "Evolve", "Harmonize", "Weave", "Forge", "Align", "Merge", "Conjure", "Channel"];
-    $actions_init = ["Genesis", "Birth", "Awaken", "Spark", "Launch", "Manifest", "Inscribe", "Originate"];
-
-    $adjectives = ["Cosmic", "Verdant", "Starlight", "Runic", "Zephyr", "Quantum", "Arcane", "Fierce", "Silent", "Whimsical", "Nebula", "Astral", "Crimson", "Lunar", "Solar"];
-    $particles = ["pow", "le", "du", "von", "ze", "ish", "ka", "omni", "zzt", "flux", "kria", "sol"];
-    $tech_nouns = ["Codex", "Matrix", "Algo", "Cipher", "Scriptum", "Byteflux", "Vector", "GitGrit", "Relay", "NodeCore", "QuantumLeap"];
-    $myth_nouns = ["NovaToad", "StarSprite", "RuneGolem", "EchoScroll", "RelicCharm", "OracleStone", "DreamWeaver", "ChronoFox", "AetherPrawn", "VoidKraken"];
-    $emojis_general = ["✨", "📜", "💡", "🔮", "🌀", "🌠"];
+function generateThematicCommitMessage() {
+    global $e_sync, $e_toad, $e_sparkle;
+    $actions = ["Conjure", "Weave", "Forge", "Sculpt", "Channel", "Align", "Harmonize", "Unify", "Evolve", "Synthesize"];
+    $adjectives = ["Cosmic", "Starlight", "Runic", "Zephyr", "Quantum", "Arcane", "Fierce", "Silent", "Whimsical", "Nebula", "Astral", "Lunar", "Solar", "Verdant", "Crystal"];
+    $nouns = ["Codex", "Matrix", "Algorithm", "Cipher", "Scriptum", "Byteflux", "Vector", "GitGrit", "Continuum", "Echo", "Relay", "Oracle", "Beacon"];
+    $particles = ["von", "de", "le", "el", "zog", "klor", "ish", "flux", "zen", "qua"];
     $date_str = date("Y-m-d H:i");
-
-    $adj = $adjectives[array_rand($adjectives)]; $p1 = $particles[array_rand($particles)];
-    $p2 = $particles[array_rand($particles)]; while ($p2 === $p1) { $p2 = $particles[array_rand($particles)]; }
-    $tech = $tech_nouns[array_rand($tech_nouns)]; $myth = $myth_nouns[array_rand($myth_nouns)];
-    $num = rand(101, 777); $random_emoji = $emojis_general[array_rand($emojis_general)];
-    $core_phrase = "{$adj} {$p1} {$tech} {$p2} {$myth}{$num}";
-
-    if ($type === 'init' && $repoName) {
-        $action_word = $actions_init[array_rand($actions_init)]; $rocket_emoji = "🚀";
-        return "{$rocket_emoji} {$action_word}: {$core_phrase} for {$repoName} {$random_emoji} | {$date_str}";
-    } else {
-        $action_word = $actions_sync[array_rand($actions_sync)]; $sync_emoji = "🔄"; $toad_emoji = "🐸";
-        $phrase_elements = [$action_word.":", $core_phrase]; shuffle($phrase_elements);
-        return "{$sync_emoji} " . implode(" ", $phrase_elements) . " {$toad_emoji} {$random_emoji} | {$date_str}";
-    }
+    return sprintf("%s %s %s %s %s %s %s | %s", $e_sync, $actions[array_rand($actions)], $adjectives[array_rand($adjectives)], $particles[array_rand($particles)], $nouns[array_rand($nouns)], $e_toad, $e_sparkle, $date_str);
 }
 
-// --- MAIN SCRIPT ---
-echo "========================================\n";
-echo " GitHub Sync & Tools Master Script \n";
-echo "========================================\n";
+function readConfigFile($filePath, $placeholderUrl) {
+    global $e_warn, $e_info;
+    $settings = ['REPO_URL_HTTPS' => $placeholderUrl, 'AUTO_SYNC_ENABLED' => false]; // Defaults
+    if (!file_exists($filePath)) return $settings;
 
-$action = '';
-
-// (Step 1: Determine primary action - REMAINS THE SAME)
-if (file_exists($configFile)) {
-    $loadedUrl = trim(file_get_contents($configFile));
-    if (isValidGithubHttpsUrl($loadedUrl)) {
-        $repoUrlHttps = $loadedUrl;
-        echo "[INFO] Found existing config for: $repoUrlHttps\n";
-        $choice = askUser("Config found. Sync (s), create NEW repo (n), Gist (g), quit (q)?", "s");
-    } else {
-        echo "[WARN] Config file '$configFile' contains an invalid URL.\n";
-        $choice = askUser("Invalid config. Create NEW repo (n), setup EXISTING remote (e), Gist (g), quit (q)?", "e");
+    $lines = file($filePath, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+    if ($lines === false) {
+        echo "$e_warn Warning: Could not read config file '$filePath'. Using defaults.\n";
+        return $settings;
     }
-} else { 
-    if (is_dir(".git")) {
-        $currentRemoteUrl = trim(captureCommandOutput("git remote get-url origin"));
-        if ($currentRemoteUrl) {
-            $derivedHttpsUrl = convertToHttpsUrl($currentRemoteUrl);
-            if ($derivedHttpsUrl && isValidGithubHttpsUrl($derivedHttpsUrl)) {
-                $repoUrlHttps = $derivedHttpsUrl; 
-                echo "[INFO] Current Git repo connected to: $repoUrlHttps\n";
-                $choice = askUser("Sync this repo (s), create different NEW repo (n), Gist (g), quit (q)?", "s");
-            } else {
-                echo "[WARN] Current 'origin' remote ('$currentRemoteUrl') is not a recognized GitHub URL.\n";
-                $choice = askUser("Create NEW GitHub repo (n), setup EXISTING remote (e), Gist (g), quit (q)?", "n");
-            }
-        } else { 
-            $choice = askUser("Git repo has no 'origin'. Create NEW GitHub repo (n), setup EXISTING remote (e), Gist (g), quit (q)?", "n");
-        }
-    } else { 
-        $choice = askUser("Not a Git repo. Create NEW GitHub repo (n), connect to EXISTING (e), Gist (g), quit (q)?", "n");
-    }
-}
-
-if ($choice === 's') $action = 'sync';
-elseif ($choice === 'n') { $repoUrlHttps = ''; $action = 'new_repo'; } 
-elseif ($choice === 'e') $action = 'sync_existing_prompt_url';
-elseif ($choice === 'g') $action = 'gist';
-elseif ($choice === 'q') { echo "[INFO] Quitting.\n"; exit(0); }
-else { echo "[ERROR] Invalid choice.\n"; exit(1); }
-
-
-// (Step 2: Execute Gist and New Repo actions - REMAINS THE SAME)
-if ($action === 'gist') {
-    if (!isGhCliInstalled()) {
-        echo "[ERROR] GitHub CLI ('gh') is required for Gist creation. Please install it.\n"; exit(1);
-    }
-    $fileName = askUser("Enter the filename for the Gist");
-    if (empty($fileName) || !file_exists($fileName)) {
-        echo "[ERROR] File '$fileName' not found or not provided.\n"; exit(1);
-    }
-    $gistDesc = askUser("Gist description (optional)");
-    $publicGist = askUser("Make Gist public? (yes/NO)", "NO");
-    $publicFlag = (strtolower($publicGist) === 'yes' || strtolower($publicGist) === 'y') ? "--public" : "";
-    
-    if (executeCommand("gh gist create $publicFlag -d " . escapeshellarg($gistDesc) . " " . escapeshellarg($fileName))) {
-        echo "[INFO] Gist created successfully!\n";
-    }
-    exit(0);
-}
-
-if ($action === 'new_repo') {
-    if (!isGhCliInstalled()) {
-        echo "[ERROR] GitHub CLI ('gh') is required. Please install it.\n"; exit(1);
-    }
-    $suggestedName = generateCoolRepoName();
-    $repoName = askUser("Enter repository name for GitHub", $suggestedName);
-    $repoVisibility = strtolower(askUser("Visibility (public/private/internal)", "private"));
-    if(!in_array($repoVisibility, ['public', 'private', 'internal'])) $repoVisibility = 'private';
-    $repoDesc = askUser("Description (optional)");
-
-    echo "[INFO] Creating new GitHub repository: $repoName\n";
-
-    if (!is_dir(".git")) {
-        if (!executeCommand("git init -b $defaultBranch")) exit(1);
-    }
-    captureCommandOutput("git remote remove origin", $ret_remove_dummy); 
-
-    if (!executeCommand("git add .")) exit(1);
-    
-    $initialCommitMsg = generateCoolCommitMessage('init', $repoName);
-    echo "[INFO] Attempting initial commit: '$initialCommitMsg'\n";
-    $commit_output_lines = []; $commit_ret_var = null;
-    executeCommand("git commit -m " . escapeshellarg($initialCommitMsg), $commit_output_lines, $commit_ret_var, false);
-    
-    if ($commit_ret_var !== 0) {
-        $is_nothing_to_commit = false;
-        if(!empty($commit_output_lines)) {
-            foreach($commit_output_lines as $line) {
-                if (strpos($line, "nothing to commit") !== false || strpos($line, "no changes added to commit") !== false) {
-                    $is_nothing_to_commit = true; break;
+    foreach ($lines as $line) {
+        if (strpos(trim($line), '#') === 0) continue;
+        if (strpos($line, '=') !== false) {
+            list($key, $value) = explode('=', $line, 2);
+            $key = trim($key); $value = trim($value);
+            if (array_key_exists($key, $settings)) {
+                if ($key === 'AUTO_SYNC_ENABLED') {
+                    $settings[$key] = (strtolower($value) === 'true');
+                } else {
+                    $settings[$key] = $value;
                 }
             }
         }
-        if ($is_nothing_to_commit) echo "[INFO] No new changes for initial commit.\n";
-        else echo "[WARN] Initial commit command exited with code $commit_ret_var. Proceeding.\n";
-    } else echo "[INFO] Initial commit successful.\n";
-    
-    $createCmd = "gh repo create " . escapeshellarg($repoName) . " --{$repoVisibility} --source=. --remote=origin --push";
-    if (!empty($repoDesc)) $createCmd .= " -d " . escapeshellarg($repoDesc);
-    
-    if (executeCommand($createCmd)) {
-        echo "[INFO] Repository '$repoName' created on GitHub and remote 'origin' configured.\n";
-        $newRemoteUrl = trim(captureCommandOutput("git remote get-url origin"));
-        if ($newRemoteUrl) {
-            $repoUrlHttps = convertToHttpsUrl($newRemoteUrl);
-            if (isValidGithubHttpsUrl($repoUrlHttps)) {
-                file_put_contents($configFile, $repoUrlHttps);
-                echo "[INFO] Saved new repository URL to '$configFile': $repoUrlHttps\n";
-            } else echo "[WARN] Could not determine valid HTTPS URL. Remote: $newRemoteUrl\n";
+    }
+    return $settings;
+}
+
+function writeConfigFile($filePath, array $settings, $placeholderUrl) {
+    global $e_ok, $e_floppy, $e_warn;
+    $urlToWrite = empty($settings['REPO_URL_HTTPS']) || $settings['REPO_URL_HTTPS'] === $placeholderUrl ? $placeholderUrl : $settings['REPO_URL_HTTPS'];
+    $content = "# $filePath\n";
+    $content .= "# G-Git Auto Git Grit Sync Configuration\n";
+    $content .= "# Human-readable, vonBaronAfNullConfig approved!\n";
+    $content .= "# Please edit REPO_URL_HTTPS with your target GitHub repository's HTTPS URL.\n";
+    $content .= "REPO_URL_HTTPS=" . $urlToWrite . "\n";
+    $content .= "AUTO_SYNC_ENABLED=" . ($settings['AUTO_SYNC_ENABLED'] ? 'true' : 'false') . "\n";
+
+    if (file_put_contents($filePath, $content) !== false) {
+        echo "$e_ok $e_floppy Configuration written to '$filePath'.\n";
+        return true;
+    } else {
+        echo "$e_warn Error: Could not write to config file '$filePath'.\n";
+        return false;
+    }
+}
+
+function ensureLauncherScriptsExist($phpScriptName, $gShellScriptName, $gLauncherName) {
+    global $e_ok, $e_warn, $e_bash, $e_wrench;
+    $gShellContent = <<<BASH
+#!/bin/bash
+# $gShellScriptName - Shortcut to run the G-Git PHP sync script
+
+# This script expects '$phpScriptName' to be in the same directory.
+PHP_SCRIPT_TO_RUN="./$phpScriptName"
+
+if [ -f "\$PHP_SCRIPT_TO_RUN" ]; then
+    php "\$PHP_SCRIPT_TO_RUN" "\$@" # Pass all arguments
+else
+    echo "Error: PHP sync script '\$PHP_SCRIPT_TO_RUN' not found." >&2
+    exit 1
+fi
+BASH;
+
+    $gLauncherContent = <<<SH
+#!/bin/sh
+# $gLauncherName - Finds and executes $gShellScriptName
+
+# Assumes $gShellScriptName is in the current directory or next to this launcher
+CURRENT_DIR="."
+G_SHELL_SCRIPT_TO_RUN="\$1" # Expect g.sh to be passed as first argument for flexibility
+
+if [ -z "\$G_SHELL_SCRIPT_TO_RUN" ]; then
+    G_SHELL_SCRIPT_TO_RUN="$gShellScriptName" # Default if no arg
+fi
+
+TARGET_SCRIPT_PATH="\${CURRENT_DIR}/\${G_SHELL_SCRIPT_TO_RUN}"
+
+if [ -f "\${TARGET_SCRIPT_PATH}" ]; then
+    if [ -x "\${TARGET_SCRIPT_PATH}" ]; then
+        exec "\${TARGET_SCRIPT_PATH}" "\${@:2}" # Pass remaining args
+    else
+        # echo "INFO: '\${TARGET_SCRIPT_PATH}' not executable, trying with sh..." >&2
+        sh "\${TARGET_SCRIPT_PATH}" "\${@:2}"
+        exit \$?
+    fi
+else
+    echo "Error: Target shell script '\${TARGET_SCRIPT_PATH}' not found." >&2
+    exit 1
+fi
+SH;
+
+    $scriptsCreated = 0;
+    if (!file_exists($gShellScriptName)) {
+        if (file_put_contents($gShellScriptName, $gShellContent) !== false) {
+            chmod($gShellScriptName, 0755);
+            echo "$e_ok $e_bash Launcher '$gShellScriptName' created and made executable.\n";
+            $scriptsCreated++;
+        } else {
+            echo "$e_warn Failed to create '$gShellScriptName'.\n";
         }
-    } else echo "[ERROR] Failed to create repository '$repoName' on GitHub.\n";
+    }
+
+    if (!file_exists($gLauncherName)) {
+        // Pass g.sh as an argument to the 'g' launcher's content generation
+        // This is a bit meta, the 'g' script itself can be generic but here we customize its default.
+        $gLauncherPersonalizedContent = str_replace('"$gShellScriptName"', '"'.$gShellScriptName.'"', $gLauncherContent);
+
+        if (file_put_contents($gLauncherName, $gLauncherPersonalizedContent) !== false) {
+            chmod($gLauncherName, 0755);
+            echo "$e_ok $e_wrench Universal launcher '$gLauncherName' created and made executable.\n";
+            $scriptsCreated++;
+        } else {
+            echo "$e_warn Failed to create '$gLauncherName'.\n";
+        }
+    }
+    if ($scriptsCreated > 0) {
+        echo "$e_info You can now run the sync using './$gLauncherName' (which calls './$gShellScriptName').\n";
+    }
+}
+
+
+// --- Initial Setup: Config and Launcher Scripts ---
+$placeholderUrl = "PASTE_YOUR_GITHUB_HTTPS_REPO_URL_HERE";
+ensureLauncherScriptsExist($thisScriptName, $gShellScriptName, $gLauncherName); // Create g and g.sh if they don't exist
+
+$configSettings = readConfigFile($configFileName, $placeholderUrl);
+$repoUrlHttps = $configSettings['REPO_URL_HTTPS'];
+$autoSyncEnabled = $configSettings['AUTO_SYNC_ENABLED']; // boolean
+$configChangedDuringSession = false;
+
+if (!file_exists($configFileName) || empty($repoUrlHttps) || $repoUrlHttps === $placeholderUrl) {
+    if(!file_exists($configFileName)) echo "$e_info $e_config_file Config file '$configFileName' not found. Creating with placeholder URL.\n";
+    else if (empty($repoUrlHttps) || $repoUrlHttps === $placeholderUrl) echo "$e_warn $e_config_file Config file found, but REPO_URL_HTTPS is missing or is a placeholder.\n";
+    
+    $configSettings['REPO_URL_HTTPS'] = $placeholderUrl; // Ensure placeholder is set
+    $configSettings['AUTO_SYNC_ENABLED'] = false;      // Default to false
+    writeConfigFile($configFileName, $configSettings, $placeholderUrl);
+    echo "$e_info Please edit '$configFileName', replace '$placeholderUrl' with your target GitHub repo's HTTPS URL, and re-run (e.g., using './$gLauncherName').\n";
     exit(0);
 }
 
 
-// --- Sync Action Logic (Primary Change Area) ---
-if ($action === 'sync_existing_prompt_url' && empty($repoUrlHttps)) {
-    $userInputUrl = askUser("Paste your EXISTING GitHub repository HTTPS URL");
-    if (isValidGithubHttpsUrl($userInputUrl)) {
-        $repoUrlHttps = convertToHttpsUrl($userInputUrl);
-        file_put_contents($configFile, $repoUrlHttps);
-        echo "[INFO] Saved URL to '$configFile': $repoUrlHttps\n";
-    } else {
-        echo "[ERROR] Invalid GitHub HTTPS URL provided: '$userInputUrl'\n"; exit(1);
+if (!isValidGithubHttpsUrl($repoUrlHttps)) {
+    echo "$e_warn Invalid GitHub HTTPS URL format in '$configFileName': $repoUrlHttps\n";
+    echo "$e_info Expected format: https://github.com/username/repository.git (or without .git).\n";
+    echo "$e_info Please correct it in '$configFileName' and re-run.\n";
+    exit(1);
+}
+
+// --- Auto-sync mode interaction ---
+if ($autoSyncEnabled) {
+    echo "$e_sync Auto-sync mode is ON. Proceeding with Git operations...\n";
+} else {
+    $enableAuto = askUser("Auto-sync mode is OFF. Enable for future runs? (yes/NO)", "NO");
+    if (strtolower($enableAuto) === 'yes' || strtolower($enableAuto) === 'y') {
+        $configSettings['AUTO_SYNC_ENABLED'] = true;
+        $configChangedDuringSession = true;
+        echo "$e_info Auto-sync will be enabled for the next run.\n";
     }
-}
 
-if (empty($repoUrlHttps)) {
-    echo "[ERROR] No repository URL. Cannot sync.\n"; exit(1);
-}
-$repoUrlSsh = convertToSshUrl($repoUrlHttps);
-if (!$repoUrlSsh) { echo "[ERROR] Could not convert to SSH URL: $repoUrlHttps\n"; exit(1); }
-
-echo "[INFO] Preparing to sync with: $repoUrlHttps (SSH: $repoUrlSsh)\n";
-
-// Initialize Git and set remote if needed
-if (!is_dir(".git")) {
-    if (!executeCommand("git init -b $defaultBranch")) exit(1);
-}
-$currentRemote = trim(captureCommandOutput("git remote get-url origin"));
-if (empty($currentRemote)) {
-    if (!executeCommand("git remote add origin " . escapeshellarg($repoUrlSsh))) exit(1);
-} elseif ($currentRemote !== $repoUrlSsh) {
-    if (!executeCommand("git remote set-url origin " . escapeshellarg($repoUrlSsh))) exit(1);
-}
-
-// Determine current branch, or initialize if new repo
-$currentBranch = trim(captureCommandOutput("git symbolic-ref --short HEAD"));
-if (empty($currentBranch)) {
-    $currentBranch = $defaultBranch;
-    echo "[INFO] No current branch. Will use '$defaultBranch'.\n";
-    captureCommandOutput("git rev-parse --verify HEAD", $head_exists_ret_dummy);
-    if ($head_exists_ret_dummy !== 0) { // No commits yet
-        echo "[INFO] No commits yet. Staging files for initial commit on '$defaultBranch'.\n";
-        if (!executeCommand("git add .")) exit(1);
-        system("git diff-index --quiet --cached HEAD --", $has_staged_init_ret_dummy); // Check if anything was added
-        if ($has_staged_init_ret_dummy !== 0) {
-            $initialBranchCommitMsg = generateCoolCommitMessage('init', basename(getcwd()) . " on " . $currentBranch);
-            if (!executeCommand("git commit -m " . escapeshellarg($initialBranchCommitMsg))) {
-                 echo "[WARN] Initial branch commit failed.\n";
-            }
-        } else {
-            echo "[INFO] No files for initial branch commit.\n";
+    $syncNow = askUser("Proceed with sync for THIS session? (YES/no)", "YES");
+    if (!(strtolower($syncNow) === 'yes' || strtolower($syncNow) === 'y')) {
+        if ($configChangedDuringSession) {
+            writeConfigFile($configFileName, $configSettings, $placeholderUrl);
         }
+        echo "$e_info Sync for this session cancelled by user.\n";
+        exit(0);
     }
 }
-echo "[INFO] Current local branch for sync: $currentBranch\n";
+if ($configChangedDuringSession) { // Save any changes to auto-sync preference
+    writeConfigFile($configFileName, $configSettings, $placeholderUrl);
+}
 
-// Stage and Commit Local Changes
-echo "[INFO] Staging all local changes...\n";
+
+// --- Proceed with Git Operations ---
+$repoUrlSsh = convertToSshUrl($repoUrlHttps);
+if (!$repoUrlSsh) {
+    echo "$e_warn Could not convert HTTPS URL to SSH format: $repoUrlHttps\n"; exit(1);
+}
+echo "$e_info $e_link Target HTTPS: $repoUrlHttps\n";
+echo "$e_info $e_link Using SSH for git: $repoUrlSsh\n";
+
+if (!is_dir(".git")) {
+    echo "$e_info No .git directory. Initializing new Git repository...\n";
+    if (!executeCommand("git init -b $defaultBranch")) exit(1);
+    echo "$e_ok Git repository initialized.\n";
+} else {
+    echo "$e_info Existing Git repository found.\n";
+}
+
+$currentRemoteUrl = trim(captureCommandOutput("git remote get-url origin"));
+if (empty($currentRemoteUrl)) {
+    echo "$e_info No remote 'origin'. Adding: $repoUrlSsh\n";
+    if (!executeCommand("git remote add origin " . escapeshellarg($repoUrlSsh))) exit(1);
+} elseif ($currentRemoteUrl !== $repoUrlSsh) {
+    echo "$e_warn Remote 'origin' points to '$currentRemoteUrl'.\n";
+    echo "$e_info Updating 'origin' to: $repoUrlSsh\n";
+    if (!executeCommand("git remote set-url origin " . escapeshellarg($repoUrlSsh))) exit(1);
+} else {
+    echo "$e_info Remote 'origin' correctly configured.\n";
+}
+
+echo "$e_info Staging all changes...\n";
 if (!executeCommand("git add .")) exit(1);
 
-$commit_output_lines_sync = []; $commit_ret_var_sync = null;
-$syncCommitMsg = generateCoolCommitMessage('sync');
-echo "[INFO] Attempting sync commit: '$syncCommitMsg'\n";
-executeCommand("git commit -m " . escapeshellarg($syncCommitMsg), $commit_output_lines_sync, $commit_ret_var_sync, false); // Capture output
+$commitMsg = generateThematicCommitMessage();
+echo "$e_info Attempting commit: '$commitMsg'\n";
+$commit_output_lines = []; $commit_ret_var = null;
+executeCommand("git commit -m " . escapeshellarg($commitMsg), $commit_output_lines, $commit_ret_var, false);
 
-if ($commit_ret_var_sync !== 0) {
-    $is_nothing_to_commit_sync = false;
-    if(!empty($commit_output_lines_sync)) {
-        foreach($commit_output_lines_sync as $line) {
+$nothingToCommit = false;
+if ($commit_ret_var !== 0) {
+    if(!empty($commit_output_lines)) {
+        foreach($commit_output_lines as $line) {
             if (strpos($line, "nothing to commit") !== false || strpos($line, "no changes added to commit") !== false) {
-                $is_nothing_to_commit_sync = true; break;
+                $nothingToCommit = true; break;
             }
         }
     }
-    if ($is_nothing_to_commit_sync) echo "[INFO] No new local changes to commit.\n";
-    else echo "[WARN] Sync commit command exited with code $commit_ret_var_sync. Local changes might not be committed.\n";
-} else echo "[INFO] Local changes committed successfully.\n";
+    if ($nothingToCommit) echo "$e_info No new changes to commit.\n";
+    else echo "$e_warn Commit command exited with code $commit_ret_var. Local changes might not be committed.\n";
+} else {
+    echo "$e_ok Local changes committed.\n";
+}
 
-// Pull Remote Changes
-echo "[INFO] Pulling changes from remote 'origin/$currentBranch'...\n";
+// --- Pull logic ---
+echo "$e_info Pulling remote changes for current branch (if any)...\n";
 $pull_output_lines = []; $pull_ret_var = null;
-if (!executeCommand("git pull origin " . escapeshellarg($currentBranch), $pull_output_lines, $pull_ret_var, true)) {
+// Assumes user is on the branch they want to sync (HEAD)
+if (!executeCommand("git pull origin HEAD --rebase=merges --autostash", $pull_output_lines, $pull_ret_var, true)) { // Try rebase to keep history cleaner, autostash local changes
     $pull_output_str = implode("\n", $pull_output_lines);
     if (strpos($pull_output_str, 'fix conflicts and then commit the result') !== false ||
         strpos($pull_output_str, 'Automatic merge failed') !== false ||
-        strpos($pull_output_str, 'you have unmerged paths') !== false ) {
-        echo "[CRITICAL] MERGE CONFLICTS DETECTED. Please resolve manually:\n";
-        echo "1. Edit conflicted files.\n2. `git add <resolved-files>`\n3. `git commit`\n";
-        echo "Then re-run this script or push manually.\n";
+        strpos($pull_output_str, 'you have unmerged paths') !== false ||
+        strpos($pull_output_str, 'conflict') !== false) { // Broader conflict check
+        echo "$e_warn $e_warn CRITICAL: MERGE/REBASE CONFLICTS DETECTED after pull attempt.\n";
+        echo "$e_info Please resolve the conflicts manually in your editor, then:\n";
+        echo "1. `git add <resolved-files>`\n";
+        echo "2. `git rebase --continue` (if rebase was in progress) or `git commit` (if a merge was attempted and failed mid-way)\n";
+        echo "$e_info After resolving and committing, you can try syncing again or push manually.\n";
         exit(1);
     } else {
-        echo "[ERROR] Pull failed. Check output. Manual intervention may be needed.\n";
-        exit(1);
+        echo "$e_warn Pull failed for other reasons. Check output above. Manual intervention may be needed.\n";
+        // Don't exit here, let it try to push. If push fails, then user definitely needs to intervene.
     }
 } else {
-    echo "[INFO] Pull successful.\n";
+    echo "$e_ok Pull successful (or no new changes from remote).\n";
 }
 
-// Attempt Standard Push
-echo "[INFO] Attempting standard push to 'origin/$currentBranch'...\n";
-$push_output_lines = []; $push_ret_var = null;
-if (executeCommand("git push origin " . escapeshellarg($currentBranch), $push_output_lines, $push_ret_var, true)) {
-    echo "[INFO] Standard push successful! All synced.\n";
-} else {
-    // Standard push failed. NOW offer the force push option if it looks like a non-fast-forward.
-    $push_output_str = implode("\n", $push_output_lines);
-    if (strpos($push_output_str, 'rejected') !== false && (strpos($push_output_str, 'non-fast-forward') !== false || strpos($push_output_str, 'remote contains work that you do') !== false )) {
-        echo "[WARN] Standard push failed because remote has diverged (non-fast-forward).\n";
-        $truthConfirm = askUser("MAKE LOCAL THE 'SINGLE SOURCE OF TRUTH'? (This uses `git push --force-with-lease` to REWRITE remote history for '$currentBranch'. Use if you are CERTAIN your local history is what the remote should reflect, potentially discarding some remote commits. DANGEROUS!) (yes/NO)", "NO");
 
-        if (strtolower($truthConfirm) === 'yes' || strtolower($truthConfirm) === 'y') {
-            $reallySure = askUser("ARE YOU ABSOLUTELY SURE? Type 'YES_I_UNDERSTAND_THE_RISKS' to confirm force push:", "NO");
-            if ($reallySure === 'YES_I_UNDERSTAND_THE_RISKS') {
-                echo "[WARN] Force pushing (with lease) local '$currentBranch' to 'origin/$currentBranch'...\n";
-                if (executeCommand("git push --force-with-lease origin " . escapeshellarg($currentBranch))) {
-                    echo "[INFO] Force push (with lease) successful!\n";
+// --- Push logic ---
+echo "$e_info Attempting standard push to origin (current branch)...\n";
+$push_output_lines = []; $push_ret_var = null;
+if (executeCommand("git push origin HEAD", $push_output_lines, $push_ret_var, true)) {
+    echo "$e_ok $e_rocket Push successful! All synced.\n";
+} else {
+    $push_output_str = implode("\n", $push_output_lines);
+    $isNonFastForward = (strpos($push_output_str, 'rejected') !== false && 
+                        (strpos($push_output_str, 'non-fast-forward') !== false || 
+                         strpos($push_output_str, 'remote contains work that you do') !== false ||
+                         strpos($push_output_str, 'failed to push some refs') !== false ));
+
+    if ($isNonFastForward) {
+        echo "$e_warn Standard push failed because remote has diverged (non-fast-forward).\n";
+        echo "$e_info This usually means someone else pushed changes since your last pull/sync.\n";
+        $forceConfirm = askUser("Attempt to force push (WITH LEASE) to make local the 'Single Source of Truth'? $e_warn DANGEROUS - can overwrite remote changes! (yes/NO)", "NO");
+
+        if (strtolower($forceConfirm) === 'yes' || strtolower($forceConfirm) === 'y') {
+            $reallySure = askUser("ARE YOU ABSOLUTELY SURE? This can't be undone easily. Type 'YES_OVERWRITE_REMOTE' to confirm:", "NO");
+            if ($reallySure === 'YES_OVERWRITE_REMOTE') {
+                echo "$e_warn $e_warn Force pushing (with lease) local branch to origin...\n";
+                if (executeCommand("git push --force-with-lease origin HEAD")) {
+                    echo "$e_ok $e_rocket Force push (with lease) successful!\n";
                 } else {
-                    echo "[ERROR] Force push (with lease) failed.\n";
+                    echo "$e_warn Force push (with lease) failed. Check errors.\n";
                 }
             } else {
-                echo "[INFO] Force push cancelled. Manual resolution needed.\n";
+                echo "$e_info Force push cancelled. Manual resolution needed (e.g., pull again, merge/rebase, then try standard push).\n";
             }
         } else {
-            echo "[INFO] Force push not chosen. Manual resolution needed (e.g., rebase, or merge remote changes differently).\n";
+            echo "$e_info Force push not chosen. Manual resolution needed. Try `git pull` again, then `git push`.\n";
         }
     } else {
-        echo "[ERROR] Standard push failed for other reasons. Check output above.\n";
+        echo "$e_warn Standard push failed for other reasons. Check output above. You might need to `git pull` first if there were remote changes.\n";
     }
 }
 
-echo "[INFO] Script finished.\n";
-exit(0);
+echo "---------------------------------------------------\n";
+echo "$e_party G-Git Grit Sync process complete! $e_party\n";
 ?>

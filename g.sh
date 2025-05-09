@@ -1,32 +1,36 @@
-#!/bin/bash
+#!/bin/sh
+# This is the file 'g'
+# Its purpose is to find and execute g.sh in the current directory.
 
-# g.sh - Shortcut to run the G-Git Auto Git Grit Sync PHP script
+# Get the directory where this 'g' script itself is located.
+# This helps if 'g' is in PATH and called from elsewhere, but 'g.sh' is next to it.
+# However, for your described use case (chmod +x g in the project root),
+# current directory is more relevant for finding g.sh.
+# SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)" # More robust for finding script's own dir
+CURRENT_DIR="." # Assume g.sh is in the current working directory
 
-# Option 1: If g_git_auto_git_grit_sync.php is in the same directory as g.sh
-# SCRIPT_PATH="$(dirname "$0")/g_git_auto_git_grit_sync.php"
+G_SHELL_SCRIPT="g.sh"
 
-# Option 2: If g_git_auto_git_grit_sync.php is expected to be in a specific location
-# or you want to make g.sh more portable (e.g., place g.sh in /usr/local/bin)
-# you might need to adjust the path or assume it's in the PATH.
-# For simplicity, let's assume it's in the current directory when g.sh is run,
-# or you can make SCRIPT_PATH absolute if g_git_auto_git_grit_sync.php has a fixed location.
+# Check if g.sh exists in the current directory
+if [ -f "${CURRENT_DIR}/${G_SHELL_SCRIPT}" ]; then
+    # If g.sh is not executable, this 'g' script could try to make it so,
+    # but you specifically want to `chmod +x g` yourself.
+    # So, 'g' will assume 'g.sh' might also need to be executable
+    # or that it will be run by explicitly calling a shell.
 
-# Let's assume g_git_auto_git_grit_sync.php is in the current directory
-# where g.sh is being executed from (i.e., you run ./g.sh from your project root)
-SCRIPT_NAME="g_git_auto_git_grit_sync.php"
-
-# Check if the PHP script exists in the current directory
-if [ -f "./${SCRIPT_NAME}" ]; then
-    php "./${SCRIPT_NAME}" "$@" # Pass all arguments from g.sh to the PHP script
-elif [ -f "$(dirname "$0")/${SCRIPT_NAME}" ]; then # Check if it's next to g.sh itself
-    php "$(dirname "$0")/${SCRIPT_NAME}" "$@"
-else
-    # Try to find it if g.sh is in PATH and script is in current dir of execution
-    if command -v php >/dev/null 2>&1 && [ -f "${SCRIPT_NAME}" ]; then
-        php "${SCRIPT_NAME}" "$@"
+    # For maximum compatibility if g.sh might not have +x itself yet:
+    # Execute g.sh using sh (or bash if g.sh specifically needs bash features)
+    # This bypasses the need for g.sh to be executable if it has a shebang.
+    if [ -x "${CURRENT_DIR}/${G_SHELL_SCRIPT}" ]; then
+        exec "${CURRENT_DIR}/${G_SHELL_SCRIPT}" "$@" # Use exec to replace 'g' process with g.sh
     else
-        echo "Error: ${SCRIPT_NAME} not found."
-        echo "Please ensure it's in the current directory, or next to g.sh, or adjust SCRIPT_PATH in g.sh."
-        exit 1
+        # Attempt to run with sh if not executable. g.sh should have a #!/bin/bash or #!/bin/sh
+        echo "INFO: '${G_SHELL_SCRIPT}' not executable, attempting to run with 'sh'..." >&2
+        sh "${CURRENT_DIR}/${G_SHELL_SCRIPT}" "$@"
+        exit $? # Exit with the status of g.sh
     fi
+else
+    echo "Error: The companion script '${G_SHELL_SCRIPT}' was not found in the current directory." >&2
+    echo "Please ensure both 'g' (this script) and '${G_SHELL_SCRIPT}' are in your project root." >&2
+    exit 1
 fi
