@@ -11,12 +11,12 @@ Dive into the core concepts powering the next generation of AI systems that don'
 
 To set up the project and generate the knowledge monolith:
 
-1.  **Clone this repository:**
+1.  **Clone this repository (or use these generated files):**
+    If you are setting this up from an empty directory after running the PHP generator script, you can skip the clone. If you are cloning an existing repo that contains these files:
     ```bash
     git clone https://github.com/essingen123/AI_elastic_system_resilience_priming.git
     cd AI_elastic_system_resilience_priming
     ```
-    *(If you used a generation script like the one that created these files, you can skip the clone and `cd` steps and start from step 2 in your current directory).*
 
 2.  **Install Required Python Libraries:**
     Ensure you have Python installed (3.6+ recommended). Open your terminal and run:
@@ -26,14 +26,14 @@ To set up the project and generate the knowledge monolith:
 
 3.  **Download and Parse Articles:**
     Run the Python script to fetch and parse the Wikipedia articles:
-    ```bash
+    ```python
     python runner.py
     ```
     This will create a `parsed_articles` directory containing the text content.
 
 4.  **Generate the Knowledge Monolith:**
     Run the Python script to create the interactive HTML file:
-    ```bash
+    ```python
     python smart_monolith.py
     ```
     This will create the `rendered_results` directory containing `smart_monolith.html`.
@@ -124,7 +124,7 @@ This script downloads the raw HTML content of the Wikipedia pages using the `wge
 
 This script fetches the Wikipedia pages, parses the HTML to extract the main article text, and saves the clean text content to `.txt` files in the `parsed_articles` directory.
 
-```bash
+```python
 python runner.py
 ```
 
@@ -132,7 +132,7 @@ python runner.py
 
 This script reads the parsed text files from `parsed_articles` and generates a single, self-contained HTML file (`smart_monolith.html`) in the `rendered_results` directory. This HTML file presents the article content interactively, allowing you to toggle the visibility of each article.
 
-```bash
+```python
 python smart_monolith.py
 ```
 

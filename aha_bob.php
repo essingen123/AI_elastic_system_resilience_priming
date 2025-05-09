@@ -1,10 +1,15 @@
 <?php
+// generate_project_files.php
+// This script generates the core project files.
+// It contains the "source of truth" for README.md, runner.py, smart_monolith.py, and download_articles.sh.
 
-$triple_backtick = '```'; // Variable to hold triple backticks
-$bash_lang = 'bash';     // Variable for bash language specifier
+// Variable for the triple backticks, ESSENTIAL for README.md to avoid chat markdown issues
+$triple_backtick = '```';
+$bash_lang = 'bash'; // Default language for bash code blocks in README
+$python_lang = 'python'; // For python code blocks in README
 
 // --- Content for README.md ---
-// Using Heredoc (double quotes around EOD) to allow variable interpolation for $triple_backtick and $bash_lang
+// This is the latest README content based on our discussion.
 $readme_content = <<<"EOD"
 # Resilient Elastic System "Mind" Priming for LLMs
 *Unlocking Dynamic Capabilities in Browser-Based AI Agents*
@@ -19,12 +24,12 @@ Dive into the core concepts powering the next generation of AI systems that don'
 
 To set up the project and generate the knowledge monolith:
 
-1.  **Clone this repository:**
+1.  **Clone this repository (or use these generated files):**
+    If you are setting this up from an empty directory after running the PHP generator script, you can skip the clone. If you are cloning an existing repo that contains these files:
     {$triple_backtick}{$bash_lang}
     git clone https://github.com/essingen123/AI_elastic_system_resilience_priming.git
     cd AI_elastic_system_resilience_priming
     {$triple_backtick}
-    *(If you used a generation script like the one that created these files, you can skip the clone and `cd` steps and start from step 2 in your current directory).*
 
 2.  **Install Required Python Libraries:**
     Ensure you have Python installed (3.6+ recommended). Open your terminal and run:
@@ -34,14 +39,14 @@ To set up the project and generate the knowledge monolith:
 
 3.  **Download and Parse Articles:**
     Run the Python script to fetch and parse the Wikipedia articles:
-    {$triple_backtick}{$bash_lang}
+    {$triple_backtick}{$python_lang}
     python runner.py
     {$triple_backtick}
     This will create a `parsed_articles` directory containing the text content.
 
 4.  **Generate the Knowledge Monolith:**
     Run the Python script to create the interactive HTML file:
-    {$triple_backtick}{$bash_lang}
+    {$triple_backtick}{$python_lang}
     python smart_monolith.py
     {$triple_backtick}
     This will create the `rendered_results` directory containing `smart_monolith.html`.
@@ -132,7 +137,7 @@ This script downloads the raw HTML content of the Wikipedia pages using the `wge
 
 This script fetches the Wikipedia pages, parses the HTML to extract the main article text, and saves the clean text content to `.txt` files in the `parsed_articles` directory.
 
-{$triple_backtick}{$bash_lang}
+{$triple_backtick}{$python_lang}
 python runner.py
 {$triple_backtick}
 
@@ -140,7 +145,7 @@ python runner.py
 
 This script reads the parsed text files from `parsed_articles` and generates a single, self-contained HTML file (`smart_monolith.html`) in the `rendered_results` directory. This HTML file presents the article content interactively, allowing you to toggle the visibility of each article.
 
-{$triple_backtick}{$bash_lang}
+{$triple_backtick}{$python_lang}
 python smart_monolith.py
 {$triple_backtick}
 
@@ -159,14 +164,14 @@ Explore these concepts, experiment with the orderings, and unlock new possibilit
 EOD;
 
 // --- Content for runner.py ---
-// Using Nowdoc (single quotes around EOD) as it doesn't contain markdown triple backticks and might have $ for shell or other literal uses
+// This is the latest runner.py content.
 $runner_py_content = <<<'EOD'
 import requests
 from bs4 import BeautifulSoup
 import os
 
 # List of Wikipedia URLs to parse
-# These are the articles we discussed, ordered for the "Philosophy to Practice" priming strategy (Order 1)
+# Order 1: Philosophy to Practice
 wikipedia_urls = [
     "https://en.wikipedia.org/wiki/Worse_is_better",
     "https://en.wikipedia.org/wiki/Rapid_application_development",
@@ -176,7 +181,7 @@ wikipedia_urls = [
     "https://en.wikipedia.org/wiki/Polyglot_programming",
     "https://en.wikipedia.org/wiki/WebAssembly",
     "https://en.wikipedia.org/wiki/Prompt_engineering",
-    "https://en.wikipedia.org/wiki/Model_Context_protocol",
+    "https://en.wikipedia.org/wiki/Model_Context_protocol", # This page may not exist
     "https://en.wikipedia.org/wiki/Event_driven_architecture",
     "https://en.wikipedia.org/wiki/Concurrency_(computer_science)",
     "https://en.wikipedia.org/wiki/Finite_state_machine",
@@ -188,7 +193,6 @@ wikipedia_urls = [
 parsed_articles_dir = "parsed_articles"
 
 # --- Setup ---
-# Create the output directory if it doesn't exist
 if not os.path.exists(parsed_articles_dir):
     os.makedirs(parsed_articles_dir)
     print(f"Created directory: '{parsed_articles_dir}'")
@@ -200,58 +204,59 @@ print("-" * 30)
 for url in wikipedia_urls:
     try:
         print(f"Processing: {url}")
+        response = requests.get(url, timeout=10) # Added timeout
+        response.raise_for_status() 
 
-        # Fetch the page content using the requests library
-        response = requests.get(url)
-        response.raise_for_status() # Raise an exception for bad status codes (like 404 or 500)
-
-        # Parse the HTML content using BeautifulSoup
         soup = BeautifulSoup(response.content, 'html.parser')
-
-        # --- Extracting Main Article Text ---
-        # Wikipedia's main content is typically within a div with the id 'mw-content-text'.
-        # Within that, the actual article paragraphs are usually <p> tags.
-        # This approach tries to get all text from paragraphs in the main content area,
-        # which usually avoids most headers, footers, and sidebars.
         main_content_div = soup.find(id='mw-content-text')
 
         if main_content_div:
-            # Find all paragraph tags within the main content
-            article_paragraphs = main_content_div.find_all('p')
+            article_paragraphs = main_content_div.find_all('p', recursive=False) # Only direct children <p>
+            
+            # Enhanced text extraction logic
+            content_texts = []
+            for p_tag in article_paragraphs:
+                # Attempt to remove common "noise" like edit links, citation needed, etc.
+                for sup_tag in p_tag.find_all("sup"): # Remove <sup> tags (often citations, [edit])
+                    sup_tag.decompose()
+                
+                text = p_tag.get_text(separator=' ', strip=True) # Use space as separator for better flow
+                if text: # Only add if there's actual text
+                    content_texts.append(text)
+            
+            article_text = "\n\n".join(content_texts) # Join paragraphs with double newline for smart_monolith
 
-            # Join the text of these paragraphs
-            # We strip whitespace and use a newline as a separator between paragraphs
-            article_text = "\n".join([p.get_text(strip=True) for p in article_paragraphs if p.get_text(strip=True)]) # Ensure empty paragraphs are not just newlines
+            # Sanitize filename (more robustly)
+            title_part = url.split("/")[-1]
+            sanitized_title = "".join(c if c.isalnum() or c in ('_', '-') else '_' for c in title_part)
+            if not sanitized_title: # Handle case where URL ends weirdly
+                sanitized_title = "unknown_article_" + str(hash(url)) 
 
-            # --- Saving to File ---
-            # Get a clean filename from the URL (e.g., "Worse_is_better.txt")
-            # We take the last part of the URL path and add .txt
-            title = url.split("/")[-1].replace('(','_').replace(')','') # Sanitize for filenames
-            filename = os.path.join(parsed_articles_dir, f"{title}.txt")
+            filename = os.path.join(parsed_articles_dir, f"{sanitized_title}.txt")
 
-            # Save the extracted text to a file with UTF-8 encoding
             with open(filename, 'w', encoding='utf-8') as f:
                 f.write(article_text)
-
             print(f"  -> Saved to: {filename}")
-
         else:
             print(f"  -> Warning: Could not find main content div ('mw-content-text') for {url}. Skipping.")
 
+    except requests.exceptions.HTTPError as e:
+        if e.response.status_code == 404:
+            print(f"  -> Error 404: Page not found at {url}. Skipping.")
+        else:
+            print(f"  -> HTTP Error fetching {url}: {e}")
     except requests.exceptions.RequestException as e:
         print(f"  -> Error fetching {url}: {e}")
     except Exception as e:
-            # Catch any other potential errors during parsing or file writing
-            print(f"  -> An unexpected error occurred processing {url}: {e}")
-
+        print(f"  -> An unexpected error occurred processing {url}: {e}")
 
 print("-" * 30)
 print("Parsing complete.")
 print(f"All attempts processed. Check the '{parsed_articles_dir}' directory for results.")
-print("\nNote: The parsing logic is simplified to get paragraphs from the main content area. For highly specific or complex extraction (e.g., excluding infoboxes, tables, reference sections), you might need to refine the BeautifulSoup selectors.")
 EOD;
 
 // --- Content for smart_monolith.py ---
+// This is the latest smart_monolith.py content.
 $smart_monolith_py_content = <<<'EOD'
 import os
 import glob
@@ -259,17 +264,12 @@ import html
 
 # Directory containing the parsed article text files
 parsed_articles_dir = "parsed_articles"
-
 # Output directory for the generated HTML file
 output_rendered_dir = "rendered_results"
-
 # Output HTML file name
 output_html_file = os.path.join(output_rendered_dir, "smart_monolith.html")
 
-
-# --- HTML Template Structure ---
-# We'll build the HTML content dynamically and insert it into this template.
-# Includes basic styling and a simple JS function for toggling content visibility.
+# HTML Template Structure
 html_template = """
 <!DOCTYPE html>
 <html lang="en">
@@ -278,211 +278,144 @@ html_template = """
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Resilient Elastic Systems Knowledge Monolith</title>
     <style>
-        body {
-            font-family: sans-serif;
-            line-height: 1.6;
-            margin: 20px;
-            background-color: #f4f4f4;
-            color: #333;
-        }
-        .container {
-            max-width: 900px;
-            margin: auto;
-            background: #fff;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-        }
-        h1 {
-            color: #0056b3;
-            text-align: center;
-        }
-        h2.article-group-title {
-             color: #0056b3;
-             margin-top: 30px;
-             border-bottom: 1px solid #ccc;
-             padding-bottom: 5px;
-        }
-        .article-title {
-            cursor: pointer;
-            color: #007bff;
-            /* text-decoration: underline; */ /* Can be distracting with many titles */
-            margin-top: 15px;
-            margin-bottom: 5px;
-            font-size: 1.2em;
-            padding: 8px;
-            background-color: #e9ecef;
-            border-radius: 4px;
-            transition: background-color 0.2s ease-in-out;
-        }
-        .article-title:hover {
-            background-color: #d0d9e0;
-        }
-        .article-content {
-            display: none; /* Content is hidden by default */
-            border-left: 3px solid #007bff;
-            padding-left: 15px;
-            margin-bottom: 15px;
-            margin-top: 5px;
-            background-color: #fdfdfd;
-            padding: 10px;
-             border-radius: 0 0 4px 4px;
-        }
-        .article-content p {
-            margin-bottom: 0.8em; /* Space between paragraphs */
-        }
-        /* Style for the "View Monolith" button in README, not part of this file but good to keep in mind */
+        body {{ font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.7; margin: 0; padding: 0; background-color: #f9f9f9; color: #333; }}
+        .header {{ background-color: #2c3e50; color: white; padding: 1em 0; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }}
+        .header h1 {{ margin: 0; font-size: 2em; }}
+        .container {{ max-width: 960px; margin: 20px auto; background: #fff; padding: 25px; border-radius: 8px; box-shadow: 0 0 15px rgba(0,0,0,0.07); }}
+        .article-title {{ cursor: pointer; color: #3498db; margin-top: 20px; margin-bottom: 8px; font-size: 1.4em; padding: 10px 15px; background-color: #ecf0f1; border-left: 5px solid #3498db; border-radius: 4px; transition: background-color 0.3s ease; }}
+        .article-title:hover {{ background-color: #dde4e6; }}
+        .article-title.active {{ background-color: #bdc3c7; color: #2c3e50; }}
+        .article-content {{ display: none; border: 1px solid #ddd; border-top: none; padding: 15px 20px; margin-bottom: 20px; background-color: #fdfdfd; border-radius: 0 0 4px 4px; }}
+        .article-content p {{ margin-bottom: 1em; text-align: justify; }}
+        .article-content p:last-child {{ margin-bottom: 0; }}
+        .instructions {{ text-align: center; margin-bottom: 25px; color: #555; font-size: 0.95em; }}
+        .footer {{ text-align: center; margin-top: 30px; padding: 15px; font-size: 0.9em; color: #7f8c8d; }}
     </style>
 </head>
 <body>
+    <header class="header"><h1>Resilient Elastic Systems Knowledge Monolith</h1></header>
     <div class="container">
-        <h1>Resilient Elastic Systems Knowledge Monolith</h1>
-        <p>This self-contained document compiles key concepts for building dynamic, resilient, and elastic AI systems, particularly relevant for browser-based containers and leveraging less complex LLMs. Click on an article title to reveal its content.</p>
-
+        <p class="instructions">This document compiles key concepts for building dynamic, resilient AI systems. Click on an article title to expand/collapse its content.</p>
         <div id="articles-container">
             {{articles_content}}
         </div>
     </div>
-
+    <footer class="footer"><p>© {current_year} Knowledge Aggregator. All rights reserved by original Wikipedia authors.</p></footer>
     <script>
-        function toggleArticle(id) {
+        function toggleArticle(id) {{
             const content = document.getElementById('content-' + id);
-            const title = document.querySelector('[onclick="toggleArticle(\'' + id + '\')"]'); // Get the title element
-            if (content.style.display === 'none' || content.style.display === '') {
+            const title = document.querySelector(`[data-id='${{id}}']`);
+            if (content.style.display === 'none' || content.style.display === '') {{
                 content.style.display = 'block';
-                title.style.fontWeight = 'bold'; // Optional: make title bold when open
-            } else {
+                title.classList.add('active');
+            }} else {{
                 content.style.display = 'none';
-                title.style.fontWeight = 'normal'; // Optional: reset font weight
-            }
-        }
+                title.classList.remove('active');
+            }}
+        }}
+        document.addEventListener('DOMContentLoaded', () => {{
+            const yearSpan = document.querySelector('.footer p');
+            if(yearSpan) yearSpan.innerHTML = yearSpan.innerHTML.replace('{{current_year}}', new Date().getFullYear());
+        }});
     </script>
 </body>
 </html>
 """
 
 # --- Main Script Logic ---
-
-# Check if the parsed articles directory exists
 if not os.path.exists(parsed_articles_dir):
-    print(f"Error: Directory '{parsed_articles_dir}' not found.")
-    print("Please run runner.py first to parse the articles.")
+    print(f"Error: Directory '{parsed_articles_dir}' not found. Run runner.py first.")
     exit()
 
-# Get a list of all text files in the parsed articles directory
-# We want to maintain the order from runner.py if possible, so we try to read them in a specific order if defined
-# For now, glob does not guarantee order, but for this specific set, it might be alphabetical by filename
-# A more robust way would be to re-use the URL list from runner.py to define order.
-# However, runner.py saves files like "Worse_is_better.txt", "Rapid_application_development.txt" etc.
-# Let's use the same list of URLs as runner.py to determine the order of files.
-# (This assumes runner.py has been run and created files based on this order)
-
-# This list should ideally be shared or imported, but for simplicity, we redefine it here.
-# It must match the order and naming convention from runner.py (URL basename as filename)
-ordered_article_filenames = [
-    "Worse_is_better.txt",
-    "Rapid_application_development.txt",
-    "Procedural_programming.txt",
-    "Monolithic_application.txt",
-    "Dynamic_typing.txt",
-    "Polyglot_programming.txt",
-    "WebAssembly.txt",
-    "Prompt_engineering.txt",
-    "Model_Context_protocol.txt",
-    "Event_driven_architecture.txt",
-    "Concurrency_computer_science.txt", # Adjusted for sanitized filename
-    "Finite_state_machine.txt",
-    "Idempotence.txt",
-    "Fault_tolerance.txt",
+# Use the same URL list as runner.py to determine file order and titles
+ordered_article_info = [
+    ("Worse_is_better", "Worse is better"),
+    ("Rapid_application_development", "Rapid application development"),
+    ("Procedural_programming", "Procedural programming"),
+    ("Monolithic_application", "Monolithic application"),
+    ("Dynamic_typing", "Dynamic typing"),
+    ("Polyglot_programming", "Polyglot programming"),
+    ("WebAssembly", "WebAssembly"),
+    ("Prompt_engineering", "Prompt engineering"),
+    ("Model_Context_protocol", "Model Context protocol (Note: page might not exist)"),
+    ("Event_driven_architecture", "Event driven architecture"),
+    ("Concurrency_computer_science", "Concurrency (computer science)"), # runner.py sanitizes ( and )
+    ("Finite_state_machine", "Finite state machine"),
+    ("Idempotence", "Idempotence"),
+    ("Fault_tolerance", "Fault tolerance"),
 ]
 
 article_files_to_process = []
-for fname in ordered_article_filenames:
-    fpath = os.path.join(parsed_articles_dir, fname)
-    if os.path.exists(fpath):
-        article_files_to_process.append(fpath)
+processed_titles = {} # To store title for filename
+
+for base_name, display_title in ordered_article_info:
+    # Construct filename based on runner.py's sanitization logic
+    sanitized_base = "".join(c if c.isalnum() or c in ('_', '-') else '_' for c in base_name)
+    if not sanitized_base: sanitized_base = "unknown_article_" + str(hash(base_name))
+    
+    file_path = os.path.join(parsed_articles_dir, f"{sanitized_base}.txt")
+    if os.path.exists(file_path):
+        article_files_to_process.append(file_path)
+        processed_titles[file_path] = display_title
     else:
-        print(f"Warning: Expected article file '{fname}' not found in '{parsed_articles_dir}'. It will be skipped in the monolith.")
-
-# Fallback if the ordered list is empty or files are missing, process whatever is there (though order is lost)
-if not article_files_to_process:
-    print("Warning: No files found based on the predefined order. Processing all .txt files found, order may vary.")
-    article_files_to_process = glob.glob(os.path.join(parsed_articles_dir, "*.txt"))
-
+        print(f"Warning: Expected article file '{sanitized_base}.txt' for '{display_title}' not found. Skipping.")
 
 if not article_files_to_process:
-    print(f"Error: No .txt files found in '{parsed_articles_dir}' to process.")
-    print("Please ensure runner.py ran successfully and created files.")
+    print(f"Error: No .txt files found based on the predefined order in '{parsed_articles_dir}'.")
     exit()
 
-# Create the output rendered directory if it doesn't exist
 if not os.path.exists(output_rendered_dir):
     os.makedirs(output_rendered_dir)
-    print(f"Created directory: '{output_rendered_dir}' for rendered results.")
+    print(f"Created directory: '{output_rendered_dir}'")
 
-
-# Build the HTML content for the articles section
 articles_html_content = ""
 article_id_counter = 0
 
 for file_path in article_files_to_process:
     try:
-        # Extract the article title from the filename
-        file_name = os.path.basename(file_path)
-        # Remove the file extension and replace underscores/hyphens with spaces for readability
-        article_title = os.path.splitext(file_name)[0].replace("_", " ").replace("-", " ")
-
-        # Read the content of the article file
+        article_title_display = processed_titles.get(file_path, os.path.splitext(os.path.basename(file_path))[0].replace("_", " "))
+        
         with open(file_path, 'r', encoding='utf-8') as f:
             article_text = f.read()
 
-        # Escape HTML special characters in the text content to prevent rendering issues
         escaped_article_text = html.escape(article_text)
+        # runner.py now uses "\n\n" between paragraphs
+        paragraphs = escaped_article_text.split('\n\n') 
+        formatted_text = "".join(f"<p>{p.strip()}</p>" for p in paragraphs if p.strip())
 
-        # Replace newlines (single \n from runner.py) with HTML paragraph tags
-        paragraphs = escaped_article_text.split('\n')
-        formatted_text = "".join(f"<p>{p.strip()}</p>" for p in paragraphs if p.strip()) # Ensure empty lines don't create empty <p> tags
-
-
-        # Create a unique ID for this article's content div
         article_id = f"article-{article_id_counter}"
-
-        # Append the HTML for this article (title and hidden content)
         articles_html_content += f"""
         <div class="article">
-            <h3 class="article-title" onclick="toggleArticle('{article_id}')">{article_title}</h3>
+            <h2 class="article-title" data-id='{article_id}' onclick="toggleArticle('{article_id}')">{html.escape(article_title_display)}</h2>
             <div id="content-{article_id}" class="article-content">
-                {formatted_text}
+                {formatted_text if formatted_text else '<p><em>Content could not be loaded or was empty.</em></p>'}
             </div>
         </div>
         """
         article_id_counter += 1
-
     except Exception as e:
         print(f"Warning: Could not process file {file_path}: {e}")
-        # Continue processing other files even if one fails
 
-# Insert the generated articles content into the main HTML template
 final_html_output = html_template.replace("{{articles_content}}", articles_html_content)
 
-# Save the final HTML output to a file
 try:
     with open(output_html_file, 'w', encoding='utf-8') as f:
         f.write(final_html_output)
-    print(f"\nSuccessfully created '{output_html_file}'.")
-    print(f"Open this file in your browser to view the knowledge monolith.")
+    print(f"\nSuccessfully created '{output_html_file}'. Open in browser.")
 except Exception as e:
     print(f"Error: Could not write to output file {output_html_file}: {e}")
 EOD;
 
 // --- Content for download_articles.sh ---
+// This is the latest download_articles.sh content.
 $download_sh_content = <<<'EOD'
 #!/bin/bash
 
 # Directory to save raw HTML content
 output_dir="raw_articles"
 
-# List of Wikipedia URLs to download
+# List of Wikipedia URLs to download (Order 1)
+# Ensure these are raw URLs, not markdown links
 wikipedia_urls=(
     "https://en.wikipedia.org/wiki/Worse_is_better"
     "https://en.wikipedia.org/wiki/Rapid_application_development"
@@ -502,89 +435,96 @@ wikipedia_urls=(
 
 # Create the output directory if it doesn't exist
 if [ ! -d "$output_dir" ]; then
-    mkdir "$output_dir"
+    mkdir -p "$output_dir" # -p creates parent dirs if needed and doesn't error if exists
     echo "Created directory: '$output_dir'"
 fi
 
 echo "Starting to download ${#wikipedia_urls[@]} articles..."
 echo "------------------------------"
 
+successful_downloads=0
+failed_downloads=0
+
 for url in "${wikipedia_urls[@]}"; do
     echo "Downloading: $url"
-    wget -P "$output_dir" "$url"
+    # Use wget to download the URL into the output directory
+    # -P specifies prefix directory
+    # -nv for less verbose output
+    # --timeout and --tries for robustness
+    # -O to specify output filename based on URL part, avoiding issues with query strings if any
+    filename=$(basename "$url")
+    wget -P "$output_dir" -O "$output_dir/$filename.html" --timeout=15 --tries=2 "$url"
     if [ $? -eq 0 ]; then
-        echo "  -> Downloaded successfully."
+        echo "  -> Downloaded successfully as $filename.html"
+        successful_downloads=$((successful_downloads + 1))
     else
-        echo "  -> Error downloading."
+        echo "  -> Error downloading $url. Status: $?"
+        failed_downloads=$((failed_downloads + 1))
     fi
 done
 
 echo "------------------------------"
 echo "Download complete."
-echo "Raw HTML files saved in the '$output_dir' directory."
-echo "Note: These are raw HTML files. runner.py or a similar script is needed to parse them into plain text."
+echo "Successfully downloaded: $successful_downloads article(s)."
+echo "Failed to download: $failed_downloads article(s)."
+echo "Raw HTML files (attempted) in the '$output_dir' directory."
+echo "Note: runner.py is needed to parse these into plain text."
 EOD;
 
 // --- File Creation Logic ---
+// (This part remains the same as your last version of generate_project_files.php)
+echo "Attempting to create/update project files...\n";
 
 if (file_put_contents("README.md", $readme_content)) {
-    echo "README.md created successfully.\n";
+    echo "README.md created/updated successfully.\n";
 } else {
-    echo "Error creating README.md.\n";
+    echo "Error creating/updating README.md.\n";
 }
 
 if (file_put_contents("runner.py", $runner_py_content)) {
-    echo "runner.py created successfully.\n";
-    if (!stristr(PHP_OS, 'WIN') && chmod("runner.py", 0755)) { // Check for non-Windows OS before chmod
+    echo "runner.py created/updated successfully.\n";
+    if (!stristr(PHP_OS, 'WIN') && chmod("runner.py", 0755)) {
         echo "runner.py set to executable.\n";
     } elseif (stristr(PHP_OS, 'WIN')) {
-        echo "runner.py created. (chmod not applicable on Windows).\n";
+        echo "runner.py created/updated. (chmod not applicable on Windows).\n";
     } else {
         echo "Error setting runner.py to executable.\n";
     }
 } else {
-    echo "Error creating runner.py.\n";
+    echo "Error creating/updating runner.py.\n";
 }
 
 if (file_put_contents("smart_monolith.py", $smart_monolith_py_content)) {
-    echo "smart_monolith.py created successfully.\n";
-    if (!stristr(PHP_OS, 'WIN') && chmod("smart_monolith.py", 0755)) { // Check for non-Windows OS before chmod
+    echo "smart_monolith.py created/updated successfully.\n";
+    if (!stristr(PHP_OS, 'WIN') && chmod("smart_monolith.py", 0755)) {
         echo "smart_monolith.py set to executable.\n";
     } elseif (stristr(PHP_OS, 'WIN')) {
-        echo "smart_monolith.py created. (chmod not applicable on Windows).\n";
+        echo "smart_monolith.py created/updated. (chmod not applicable on Windows).\n";
     } else {
         echo "Error setting smart_monolith.py to executable.\n";
     }
 } else {
-    echo "Error creating smart_monolith.py.\n";
+    echo "Error creating/updating smart_monolith.py.\n";
 }
 
 if (file_put_contents("download_articles.sh", $download_sh_content)) {
-    echo "download_articles.sh created successfully.\n";
-    // Convert line endings to LF for shell script, just in case PHP defaults to CRLF on Windows
+    echo "download_articles.sh created/updated successfully.\n";
     $file_content = file_get_contents("download_articles.sh");
-    $file_content = str_replace("\r\n", "\n", $file_content);
+    $file_content = str_replace("\r\n", "\n", $file_content); // Ensure LF line endings
     file_put_contents("download_articles.sh", $file_content);
 
-    if (!stristr(PHP_OS, 'WIN') && chmod("download_articles.sh", 0755)) { // Check for non-Windows OS before chmod
+    if (!stristr(PHP_OS, 'WIN') && chmod("download_articles.sh", 0755)) {
         echo "download_articles.sh set to executable.\n";
     } elseif (stristr(PHP_OS, 'WIN')) {
-        echo "download_articles.sh created. (chmod not applicable on Windows. Ensure it has LF line endings if using WSL/Git Bash).\n";
+        echo "download_articles.sh created/updated. (chmod not applicable on Windows. Ensure LF line endings if using WSL/Git Bash).\n";
     } else {
         echo "Error setting download_articles.sh to executable.\n";
     }
 } else {
-    echo "Error creating download_articles.sh.\n";
+    echo "Error creating/updating download_articles.sh.\n";
 }
 
-echo "\nAll files generated!\n";
-echo "The generated files (README.md, runner.py, smart_monolith.py, download_articles.sh) are now ready to be committed to your repository.\n";
-echo "\nTypical next steps for a USER of your repository would be:\n";
-echo "1. Ensure Python is installed, then install dependencies: pip install requests beautifulsoup4\n";
-echo "2. To get article content (choose one method):\n";
-echo "   a) Download raw HTML: ./download_articles.sh (ensure it's executable: chmod +x download_articles.sh on Linux/macOS)\n";
-echo "   b) Download and parse to text: python runner.py\n";
-echo "3. If you ran 'python runner.py', generate the browsable HTML monolith: python smart_monolith.py\n";
-echo "4. Open rendered_results/smart_monolith.html in a browser.\n";
+echo "\nAll specified files have been processed by the generator.\n";
+echo "These are now ready to be committed to your repository if they reflect your desired state.\n";
 
 ?>
