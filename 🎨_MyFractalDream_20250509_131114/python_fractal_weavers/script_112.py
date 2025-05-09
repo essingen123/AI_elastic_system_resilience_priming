@@ -1,0 +1,44 @@
+import sys, json, math, random
+# Script ID 112: Op 'henon_map_x', Modifiers: a=1.2
+def perform_operation(val, current_depth, script_id, **modifiers):
+    for key, value in modifiers.items(): globals()[key] = value 
+    prev_val_placeholder = random.uniform(-0.1, 0.1) if "$op_name" == "henon_map_x" else 0 
+    try: 
+        if "henon_map_x" == "logistic_map": 
+             limit = modifiers.get("modifier_limit", 1)
+             if limit == 0: limit = 1 
+             val_norm = abs(val) 
+             val = (val_norm % limit) / limit if limit != 0 else val_norm % 1.0
+        elif "henon_map_x" == "henon_map_x":
+             pass # Placeholder for true Henon state logic
+
+        return 1 - modifier_a * val**2 + prev_val_placeholder
+    except Exception as e: 
+        return val + random.uniform(-1.0, 1.0) 
+
+if __name__ == "__main__":
+    if len(sys.argv) < 5: print(json.dumps({"error": "Insufficient args", "script_id": 112})); sys.exit(1)
+    input_value, current_depth, num_total_scripts, max_allowed_depth = float(sys.argv[1]), int(sys.argv[2]), int(sys.argv[3]), int(sys.argv[4])
+    
+    modifier_a = 1.2
+    # PHP injects modifier assignments here. Note: Ensure it's indented correctly if it spans multiple lines.
+    
+    output_value = perform_operation(input_value, current_depth, 112, **({"modifier_a": modifier_a}))
+    output_value = max(-100000.0, min(100000.0, output_value)) 
+    if math.isnan(output_value) or math.isinf(output_value): output_value = random.uniform(-50.0, 50.0)
+
+    next_call_id = 115 if current_depth < max_allowed_depth and 1 else None
+    if next_call_id is not None: # Ensure next_call_id from PHP is an integer
+        try:
+            next_call_id = int(next_call_id)
+            if not (0 <= next_call_id < num_total_scripts): 
+                 next_call_id = random.randint(0, num_total_scripts - 1)
+        except ValueError: # If next_script_id_expr was 'None' string or other non-int
+            next_call_id = random.randint(0, num_total_scripts - 1) if 1 else None # Fallback if parsing failed
+    
+    print(json.dumps({
+        "script_id":112, "input_value":input_value, "op_type":"henon_map_x", 
+        "modifiers_used": {"modifier_a": modifier_a}, "output_value":output_value, 
+        "depth":current_depth, "next_call_id":next_call_id,
+        "num_total_scripts":num_total_scripts
+    }))
