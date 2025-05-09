@@ -1,0 +1,6 @@
+# g_git_auto_git_grit_sync_2_config_4_humains_etc_config.vonBaronAfNullConfig
+# G-Git Auto Git Grit Sync Configuration
+# Human-readable, vonBaronAfNullConfig approved!
+# Please edit REPO_URL_HTTPS with your target GitHub repository's HTTPS URL.
+REPO_URL_HTTPS=https://github.com/essingen123/AI_elastic_system_resilience_priming
+AUTO_SYNC_ENABLED=true
