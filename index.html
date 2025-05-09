@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Python Fractal Math Art 🎨</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@1/css/pico.min.css">
+    <style>
+        body { margin: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; background-color: #f0f0f0; }
+        canvas { border: 1px solid #ccc; background-color: #fff; max-width: 90vw; max-height: 80vh; }
+        header, footer { text-align: center; margin: 1em; }
+        .controls { margin-bottom: 1em; }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Python Fractal Math Art 🎨</h1>
+        <p>Visualizing chained math operations from Python scripts.</p>
+    </header>
+    <main class="container">
+        <div class="controls">
+            <button id="startButton">Start Visualization</button>
+            <button id="stopButton" disabled>Stop</button>
+            <button id="clearButton">Clear Canvas</button>
+        </div>
+        <canvas id="fractalCanvas" width="800" height="600"></canvas>
+    </main>
+    <footer>
+        <p>Powered by Python, PHP, and Pico.css</p>
+    </footer>
+
+    <script>
+        const canvas = document.getElementById('fractalCanvas');
+        const ctx = canvas.getContext('2d');
+        const startButton = document.getElementById('startButton');
+        const stopButton = document.getElementById('stopButton');
+        const clearButton = document.getElementById('clearButton');
+        let eventSource = null;
+        let lastX = canvas.width / 2;
+        let lastY = canvas.height / 2;
+        let hue = 0;
+
+        function clearCanvas() {
+            ctx.fillStyle = 'white';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            lastX = canvas.width / 2; // Reset starting point
+            lastY = canvas.height / 2;
+            hue = 0;
+        }
+        clearCanvas(); // Initial clear
+
+        startButton.addEventListener('click', () => {
+            if (eventSource) eventSource.close(); // Close existing if any
+            clearCanvas();
+            
+            eventSource = new EventSource('orchestrator.php');
+            startButton.disabled = true;
+            stopButton.disabled = false;
+
+            eventSource.onmessage = function(event) {
+                try {
+                    const data = JSON.parse(event.data);
+                    console.log(data); // Log for debugging
+
+                    // Simple visualization: move a point and change its color
+                    const value = parseFloat(data.output_value);
+                    const depth = parseInt(data.depth);
+
+                    // Map value to canvas coordinates (very basic example)
+                    // Normalize value to be somewhat predictable for drawing
+                    let normValue = (value % 100) / 100; // Normalize to 0-1 range after modulo
+                    if (isNaN(normValue)) normValue = 0.5;
+
+
+                    const angle = normValue * Math.PI * 2 * (data.op_type === 'multiply' ? 1.5 : 1); // Different angle for different ops
+                    const distance = 10 + (depth * 5) + (Math.abs(normValue - 0.5) * 20) ; // Move further based on depth and value deviation
+
+                    const newX = lastX + Math.cos(angle) * distance;
+                    const newY = lastY + Math.sin(angle) * distance;
+                    
+                    ctx.beginPath();
+                    ctx.moveTo(lastX, lastY);
+
+                    hue = (hue + 5) % 360; // Cycle hue
+                    const saturation = 70 + (depth * 5); // More saturated for deeper calls
+                    const lightness = 50 + (normValue - 0.5) * 20; // Lighter/darker based on value
+
+                    ctx.strokeStyle = `hsl(${hue}, ${saturation}%, ${lightness}%)`;
+                    ctx.lineWidth = 1 + depth * 0.5; // Thicker lines for deeper calls
+                    ctx.lineTo(newX, newY);
+                    ctx.stroke();
+
+                    // Draw a small circle at the new point
+                    ctx.beginPath();
+                    ctx.arc(newX, newY, 2 + depth, 0, Math.PI * 2);
+                    ctx.fillStyle = `hsl(${hue}, ${saturation}%, ${lightness - 10}%)`;
+                    ctx.fill();
+
+                    lastX = newX > canvas.width || newX < 0 ? canvas.width / 2 : newX; // Reset if out of bounds
+                    lastY = newY > canvas.height || newY < 0 ? canvas.height / 2 : newY;
+
+                } catch (e) {
+                    console.error("Error parsing or drawing data:", e, event.data);
+                }
+            };
+
+            eventSource.onerror = function(err) {
+                console.error("EventSource failed:", err);
+                eventSource.close();
+                startButton.disabled = false;
+                stopButton.disabled = true;
+            };
+        });
+
+        stopButton.addEventListener('click', () => {
+            if (eventSource) {
+                eventSource.close();
+                console.log("EventSource closed.");
+            }
+            startButton.disabled = false;
+            stopButton.disabled = true;
+        });
+        
+        clearButton.addEventListener('click', clearCanvas);
+
+    </script>
+</body>
+</html>
