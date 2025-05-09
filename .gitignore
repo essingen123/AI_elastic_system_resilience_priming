@@ -1,0 +1,23 @@
+# Sensitive
+.env*
+credentials*
+*key*
+*secret*
+*.pem
+# OS/Editor
+.DS_Store
+*.swp
+*.swo
+# Logs
+*.log
+logs/
+# Build/Deps
+/node_modules/
+/.mypy_cache/
+/.pytest_cache/
+/.venv/
+/venv/
+/env/
+dist/
+build/
+*.egg-info/
