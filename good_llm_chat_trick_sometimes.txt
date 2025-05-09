@@ -1,0 +1,22 @@
+1. The Toolbox Snippet (LLM Output Escaping)
+Here's a brief, language-agnostic principle and then a PHP example:
+Toolbox Snippet: LLM Chat - Safe Code Generation with Delimiters
+Principle (Language Agnostic): When generating code within an LLM chat that itself contains delimiters (e.g., ```, %%%, $$) which the chat interface also uses for its own formatting, avoid outputting those delimiters literally within your main code string. Instead, store the delimiters in variables and concatenate/interpolate them into the string. This prevents the chat's parser from prematurely breaking or misinterpreting your intended code block.
+Example (PHP - for generating Markdown with code blocks):
+<?php
+// --- For your Toolbox ---
+// Tip: Mitigating LLM chat Markdown issues for generated code blocks.
+
+$triple_backtick = '```'; // Store the delimiter
+$lang_specifier  = 'bash';   // e.g., bash, python
+
+// Construct the string using the variable
+$markdown_output = "To run the script:\n";
+$markdown_output .= $triple_backtick . $lang_specifier . "\n"; // Start code block
+$markdown_output .= "./my_script.sh --option\n";
+$markdown_output .= $triple_backtick;                         // End code block
+
+echo $markdown_output;
+// The chat interface should now display the PHP code block correctly,
+// and the $markdown_output will contain the intended Markdown.
+?>
