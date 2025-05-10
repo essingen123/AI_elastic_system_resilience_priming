@@ -1,5 +1,5 @@
 <?php
-// DO NOT DELETE - Process Marker: fractal_server_process_marker_72887e4c00d10467
+// DO NOT DELETE - Process Marker: fractal_server_debug_marker_5a294201
 // Serves files from current dir or index.html for directories.
 $docRoot = __DIR__;
 $reqUri = $_SERVER['REQUEST_URI'];

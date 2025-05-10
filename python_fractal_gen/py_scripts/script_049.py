@@ -1,7 +1,7 @@
 import sys, json, random, math
 
 def my_operation(val, mod):
-    return val - mod
+    return val + mod
 
 if __name__ == "__main__":
     input_value = float(sys.argv[1]) if len(sys.argv) > 1 else 1.0
@@ -13,7 +13,7 @@ if __name__ == "__main__":
     result = {
         "script_id": 49,
         "input_value": input_value,
-        "op_type": "subtract",
+        "op_type": "add",
         "modifier_used": 4,
         "output_value": output_value,
         "message": "Simple Python script 49 executed."

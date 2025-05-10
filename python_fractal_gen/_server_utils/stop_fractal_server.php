@@ -8,7 +8,7 @@ echo "\$_E_INFO_ Attempting to stop PHP built-in server(s) for the Fractal Art p
 
 \$php_serverHost_val = 'localhost'; 
 \$php_portsToCheck_val = json_decode('["10021","10022","10023","10024","10025","10026","10027","10028","10029","10030"]', true);
-\$php_processMarker_val = 'fractal_server_process_marker_e8f5d3da53774143'; 
+\$php_processMarker_val = 'fractal_server_process_marker_72887e4c00d10467'; 
 \$php_routerScriptName_val = '___fractal_server_router.php'; 
 
 \$killedSomething = false;
