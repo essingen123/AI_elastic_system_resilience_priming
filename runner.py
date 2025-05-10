@@ -13,7 +13,7 @@ wikipedia_urls = [
     "https://en.wikipedia.org/wiki/Polyglot_programming",
     "https://en.wikipedia.org/wiki/WebAssembly",
     "https://en.wikipedia.org/wiki/Prompt_engineering",
-    "https://en.wikipedia.org/wiki/Model_Context_protocol", # This page may not exist
+    "https://en.wikipedia.org/wiki/Model_Context_protocol", 
     "https://en.wikipedia.org/wiki/Event_driven_architecture",
     "https://en.wikipedia.org/wiki/Concurrency_(computer_science)",
     "https://en.wikipedia.org/wiki/Finite_state_machine",

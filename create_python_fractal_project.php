@@ -1,38 +1,81 @@
 <?php
 // create_python_fractal_project.php
-// Version: 2023-10-28_FractalWeaver_v1.6
-// Generator Timestamp: <?php echo date('Y-m-d H:i:s T'); ? > 
+// Version: 2023-10-28_FractalWeaver_v2.3 (3D Graph HTML, Simplified Python Gen)
+// Generator Timestamp: <?php echo date('Y-m-d H:i:s T'); ? >
 
 // --- Configuration ---
 date_default_timezone_set('UTC');
-$scriptVersion = "FractalWeaver_v1.6 (" . date('Y-m-d') . ")";
+$scriptVersion = "FractalWeaver_v2.3 (" . date('Y-m-d') . ")";
 
-$numPythonScripts = 303; // Used in folder name
+$numPythonScripts = 50; // Reduced for faster testing with simpler Python
 $randomNumberForName = rand(10, 99);
-$mainProjectFolderNameBase = "🎨_Fractal{$numPythonScripts}Dream{$randomNumberForName}_" . date('Ymd');
-// The ACTUAL folder name will append _His to this base AFTER trying to stop old server
-// $mainProjectFolderName = $mainProjectFolderNameBase . "_" . date('His'); // This is set later
+// For simpler folder structure as requested - always use python_fractal_gen
+$mainProjectFolderName = "python_fractal_gen"; // FIXED FOLDER NAME
 
-$pythonSubfolderName = "python_fractal_spells";
+$pythonSubfolderName = "py_scripts"; // Simpler subfolder name
 $serverScriptsSubfolderName = "_server_utils";
-$maxCallDepth = 6;
-$defaultMaxOrchestratorRuntime = 150;
+$maxCallDepth = 3; // Reduced for simpler Python
+$defaultMaxOrchestratorRuntime = 30;
 
 $serverHost = "localhost";
-$startPort = 10011;
-$endPort = 10020;
+$startPort = 10021; // New port range
+$endPort = 10030;
 $maxPortRetries = 5;
 
 // Emojis
 $e_sparkle = "✨"; $e_folder = "📁"; $e_script_py = "🐍"; $e_script_php = "🐘";
 $e_html = "📄"; $e_rocket = "🚀"; $e_palette = "🎨"; $e_gear = "⚙️";
 $e_warn = "⚠️"; $e_info = "ℹ️"; $e_ok = "✅"; $e_party = "🎉";
-$e_link = "🔗"; $e_terminal = "💻"; $e_eyes = "👀"; $e_stop = "🛑"; $e_timer = "⏱️"; $e_wrench = "🔧"; $e_magic = "🪄"; $e_broom = "🧹";
+$e_link = "🔗"; $e_terminal = "💻"; $e_eyes = "👀"; $e_stop = "🛑"; $e_timer = "⏱️"; $e_wrench = "🔧"; $e_magic = "🪄"; $e_broom = "🧹"; $e_log = "📜"; $e_conduct = "📜";
 
 $serverProcessMarker = "fractal_server_process_marker_" . bin2hex(random_bytes(8));
 
+// Manifesto (content assumed to be the same)
+$manifesto_q1 = <<<MANIFESTO
+kilian v0.1x CODE OF CONDUCT CODING GUIDE
+KEEP CONCISE SELF-EXPLANATORY CODE READABLE FOR EXPERTS.
+NO CODE COMMENTS EXCEPT: THIS CODE GUIDE, FILE HEADERS (SHEBANG/LICENSE/CRUCIAL SELF-EVIDENT STUFF THAT MAY ARISE), TODOs, AND PAIRED # CODE_BLOCK_ONLY_CHANGED_BY_AUTHOR_START / # CODE_BLOCK_ONLY_CHANGED_BY_AUTHOR_END.
+SINGLE SOURCE OF TRUTH (SSOT) DYNAMIC GENERATION AND FACTS ONCE ONLY IF POSSIBLE.
+SELF-CONTAINED RELOCATABLE FUNCTIONS IN RELATION TO THE REST OF THE FILE.
+USE SHORTHANDS FOR VARIABLES AND NAMES IN SINGLE-FILE CONTEXTS TO REDUCE CODE LENGTH.
+BLANK LINES FOR FUNCTION SEPARATION AND LOGICAL BLOCKS (LOOPS, CONDITIONALS INCLUDING REGEX) ENSURING CORRECT PARSING.
+PRINCIPAL BASED
+"Transform force to power"; decrease stress, increase support
+be transaprent but avoid weakness in games of "unfair advantage"
+"ALWAYS RISE TO THE OCCASION"; meaning - "keep a mind like water" meaning respond (effectivly) adequeatly (dont react affectivly overengineer)"
+be fair and kind
+copy with pride, but never steal
+care for the small, transform compete to synergy with partners
+Measure time
+MÄT TID FÖR SKAPANDE; docker + start och nedtid.. samt prestanda-krav
+hade google chrome en lokal ai med gemini GEMMA? ! .. visar att det går ! finns detta etablerat? dedikerade typ "noder" för ai med browser !?!? supercoolt! alltså typ playwright stuk
+MANTRA
+
+CONSIDER: BE AGILE; DONT CHANGE PRINCIPAL CORE - BUD ADAPT TO THE LATEST CHANGES; MEANING CHANGE BUSINESSS IDEAS IDEA DAILY(?)
+pitchdeck becomes obselete as soon as pitched to investors (thats why we have automation tools for it)
+failure just happens at 
+keep it simple yet effective
+imagine wished outcome (stay at center)
+how to reach x valuation; keep focus
+build tests
+do benchmarks; have dashboard
+now timeline; break it down
+zeroday-thinking; best songs are made in an hour - not 3 weeks - they get over saturated; how about products?
+
+PHP snabbare än python i prototyper? kör php! är php typ lika portabelt som python; kanske ännu mer eftersom det mer sällan kanske kopplar in en massa bibliotek(?) .. eller så var det en gång i allafall..
+php + sqlite (text-files?)
+MANIFESTO;
+$manifesto_q2_expected_hash = 'ceaf9d0f';
+function calculate_manifesto_hash($text) { return substr(sha1($text), 0, 8); }
+$manifesto_q1_current_hash = calculate_manifesto_hash($manifesto_q1);
+
 echo "$e_magic Create Python Fractal Project - Generator v{$scriptVersion} $e_magic\n";
 echo "Generator run timestamp: " . date('Y-m-d H:i:s T') . "\n";
+if ($manifesto_q1_current_hash === $manifesto_q2_expected_hash) {
+    echo "$e_conduct Manifesto Check: $e_ok UNCHANGED ($manifesto_q1_current_hash)\n";
+} else {
+    echo "$e_conduct Manifesto Check: $e_warn CHANGED! Expected '$manifesto_q2_expected_hash', got '$manifesto_q1_current_hash'.\n";
+}
 echo "---------------------------------------------------\n";
 
 
@@ -45,204 +88,147 @@ function isPortAvailable($host, $port, $timeout = 0.5) {
     return true;
 }
 
-// --- Helper: Content for index.html ---
-function getIndexHtmlContent($paletteEmoji, $scriptPyEmojiGlobal, $scriptPhpEmojiGlobal, $rocketEmojiGlobal, $stopEmojiGlobal) {
-    // CORRECTED: Using \${variable} for JS template literals inside PHP heredoc
-    return <<<HTML
+// --- Helper: Content for index.html (NEW VERSION with 3D Force Graph) ---
+function getIndexHtmlContent() {
+    // This HTML is self-contained for the 3D graph example.
+    // PHP variables are not interpolated into the <script> part here.
+    return <<<'§§kilian_html_delimiter§§'
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Python Fractal Math Art $paletteEmoji</title>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@1/css/pico.min.css">
-    <style>
-        :root { 
-            --background-color: #11191f; --color: #bbb; --h1-color: #fff; --muted-color: #789;
-            --primary: #00bcd4; --primary-hover: #00acc1; --card-background-color: #1a242f;
-            --card-border-color: #2c3a47; --form-element-background-color: #1a242f;
-            --form-element-border-color: #2c3a47; --form-element-focus-color: var(--primary);
-        }
-        body { margin: 0; display: flex; flex-direction: column; align-items: center; min-height: 100vh; background-color: var(--background-color); color: var(--color); font-family: 'Segoe UI', sans-serif; }
-        canvas { border: 1px solid var(--card-border-color); background-color: #0d1117; max-width: 90vw; max-height: 75vh; box-shadow: 0 0 25px rgba(0, 200, 255, 0.25); touch-action: none; }
-        header, footer { text-align: center; margin: 1em; }
-        header h1 { color: var(--h1-color); }
-        footer p { color: var(--muted-color); font-size: 0.9em;}
-        .controls { margin-bottom: 1em; padding: 0.75em; background-color: var(--card-background-color); border-radius: 8px; display: flex; gap: 0.5em; flex-wrap: wrap; justify-content: center;}
-        button { margin: 0.2em; font-size: 0.9em;}
-        .container { padding: 1em; max-width: 1000px; width: 100%;}
-        #statusMessage { font-style: italic; color: var(--muted-color); font-size: 0.9em; min-height: 1.3em; margin-top: 0.5em; text-align: center; }
-    </style>
+  <style>
+    body { margin: 0; }
+    #controls {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      z-index: 100;
+      background: rgba(0,0,0,0.5);
+      padding: 10px;
+      border-radius: 5px;
+    }
+    #controls button, #controls input, #controls label {
+      margin: 5px;
+      color: white; /* Basic styling for controls */
+    }
+    #status {
+        position: absolute;
+        bottom: 10px;
+        left: 10px;
+        color: lightgrey;
+        font-family: sans-serif;
+        font-size: 0.8em;
+        background: rgba(0,0,0,0.5);
+        padding: 5px;
+        border-radius: 3px;
+    }
+  </style>
+  <script src="//cdn.jsdelivr.net/npm/3d-force-graph"></script>
 </head>
 <body>
-    <header>
-        <h1>Python Fractal Math Art $paletteEmoji</h1>
-        <p>Emergent patterns from chained Python math operations.</p>
-    </header>
-    <main class="container">
-        <div class="controls">
-            <button id="startButton" class="primary">Start Visualization $rocketEmojiGlobal</button>
-            <button id="stopButton" class="secondary" disabled>Stop Stream $stopEmojiGlobal</button>
-            <button id="clearButton" class="contrast">Clear Canvas 🧹</button>
-        </div>
-        <div id="statusMessage">Ready to weave some math magic...</div>
-        <canvas id="fractalCanvas" width="900" height="650"></canvas>
-    </main>
-    <footer>
-        <p>Crafted with Python $scriptPyEmojiGlobal, PHP $scriptPhpEmojiGlobal, JavaScript, and Pico.css</p>
-    </footer>
-    <script>
-        const canvas = document.getElementById('fractalCanvas');
-        const ctx = canvas.getContext('2d');
-        const startButton = document.getElementById('startButton');
-        const stopButton = document.getElementById('stopButton');
-        const clearButton = document.getElementById('clearButton');
-        const statusMessage = document.getElementById('statusMessage');
-        let eventSource = null;
-        
-        let lastPos = { x: canvas.width / 2, y: canvas.height / 2 };
-        let hue = Math.random() * 360;
-        let pointCounter = 0;
-        let animationFrameId = null;
-        let dataBuffer = [];
-        const MAX_BUFFER_SIZE = 8; 
-        const TRAIL_EFFECT = true; // JS const for trail effect
-        const FADE_ALPHA = 0.03; 
+  <div id="3d-graph"></div>
+  <div id="controls">
+    <button id="emit-particles-btn">Emit 10 Particles</button>
+    <button id="reset-graph-btn">New Random Graph</button>
+    <label for="num-nodes">Nodes:</label>
+    <input type="number" id="num-nodes" value="50" min="10" max="300" style="width: 60px;">
+  </div>
+  <div id="status">Graph Ready. Click links or Emit Particles.</div>
 
-        function clearCanvas(fullClear = true) {
-            if (animationFrameId) cancelAnimationFrame(animationFrameId);
-            dataBuffer = [];
-            if (fullClear) {
-                ctx.fillStyle = '#0d1117';
-                ctx.fillRect(0, 0, canvas.width, canvas.height);
-            }
-            lastPos = { x: canvas.width * (0.4 + Math.random() * 0.2), y: canvas.height * (0.4 + Math.random() * 0.2) };
-            hue = Math.random() * 360;
-            pointCounter = 0;
-            statusMessage.textContent = "Canvas cleared. Ready for a new vision.";
+  <script>
+    const graphElem = document.getElementById('3d-graph');
+    const statusElem = document.getElementById('status');
+    let N = 50; // Default number of nodes
+    let gData = { nodes: [], links: [] };
+
+    const Graph = ForceGraph3D()(graphElem)
+      .linkDirectionalParticles(2)
+      .linkDirectionalParticleWidth(2.5)
+      .linkDirectionalParticleColor(() => 'rgba(255,0,0,0.8)')
+      .linkHoverPrecision(10)
+      .onLinkClick(link => Graph.emitParticle(link));
+
+    function generateRandomGraph(numNodes) {
+      gData.nodes = [...Array(numNodes).keys()].map(i => ({ 
+        id: i,
+        val: Math.random() * 5 + 1 // Random value for node size/color later
+      }));
+      gData.links = [...Array(numNodes).keys()]
+        .filter(id => id > 0) // Node 0 has no source target in this simple model
+        .map(id => ({
+          source: id,
+          target: Math.round(Math.random() * (id - 1)),
+          value: Math.random() // For particle speed or link strength
+        }));
+      Graph.graphData(gData)
+           .nodeVal('val') // Use 'val' for node size
+           .nodeColor(node => { // Color based on ID or val
+                const hue = (node.id * 360 / numNodes) % 360;
+                return `hsl(${hue}, 80%, 60%)`;
+           })
+           .linkWidth(link => 0.2 + link.value * 1.5)
+           .linkDirectionalParticleSpeed(link => link.value * 0.01 + 0.005);
+      statusElem.textContent = `Generated graph with ${numNodes} nodes.`;
+    }
+    
+    document.getElementById('emit-particles-btn').addEventListener('click', () => {
+      if (!gData.links.length) return;
+      let count = 0;
+      const interval = setInterval(() => {
+        if (count >= 10) {
+          clearInterval(interval);
+          return;
         }
-        clearCanvas(); 
+        const link = gData.links[Math.floor(Math.random() * gData.links.length)];
+        Graph.emitParticle(link);
+        count++;
+      }, 100); // Emit particles with a slight delay
+      statusElem.textContent = 'Emitting 10 random particles...';
+    });
 
-        function drawDataPoint(data) {
-            const value = parseFloat(data.output_value);
-            const depth = parseInt(data.depth);
-            const scriptId = parseInt(data.script_id);
-            const opType = data.op_type || 'unknown';
+    document.getElementById('reset-graph-btn').addEventListener('click', () => {
+        N = parseInt(document.getElementById('num-nodes').value) || 50;
+        generateRandomGraph(N);
+    });
+    
+    // Initial graph
+    N = parseInt(document.getElementById('num-nodes').value) || 50;
+    generateRandomGraph(N);
 
-            let normValue = (value % 200 - 100) / 100;
-            if (isNaN(normValue)) normValue = Math.random() * 2 - 1;
+    // Adjust graph size to window
+    Graph.width(window.innerWidth);
+    Graph.height(window.innerHeight);
+    window.addEventListener('resize', () => {
+        Graph.width(window.innerWidth);
+        Graph.height(window.innerHeight);
+    });
 
-            let angleOffset = 0;
-            if (opType.includes('sine') || opType.includes('cos')) angleOffset = Math.PI / 4;
-            if (opType.includes('spiral')) angleOffset = scriptId * 0.01;
+    // Optional: camera orbit
+    // let angle = 0;
+    // setInterval(() => {
+    //   Graph.cameraPosition({
+    //     x: 200 * Math.sin(angle),
+    //     z: 200 * Math.cos(angle)
+    //   });
+    //   angle += Math.PI / 300;
+    // }, 40);
 
-            const angle = (normValue * Math.PI * 1.5) + (scriptId % 180 * Math.PI / 90) + (depth * 0.15 * (pointCounter % 3 === 0 ? 1 : -1)) + angleOffset;
-            const distance = 2 + (Math.abs(normValue) * 18) + (depth * 3.0) + (Math.cos(pointCounter * 0.03) * 5) + (scriptId % 5); 
-            
-            const newX = lastPos.x + Math.cos(angle) * distance;
-            const newY = lastPos.y + Math.sin(angle) * distance;
-            
-            ctx.beginPath(); ctx.moveTo(lastPos.x, lastPos.y);
-            
-            hue = (hue + Math.abs(scriptId % 15 - 7.5) + (normValue * 12) + (depth * 0.7) ) % 360;
-            const saturation = Math.min(100, 45 + (depth * 9) + Math.abs(normValue)*35); 
-            const lightness = Math.min(90, Math.max(25, 60 + (normValue * 20) - (depth*2.5) )); 
-            
-            ctx.strokeStyle = \`hsla(\${hue}, \${saturation}%, \${lightness}%, \${TRAIL_EFFECT ? 0.45 : 0.65})\`;
-            ctx.lineWidth = Math.max(0.1, 0.2 + depth * 0.18 + Math.abs(normValue) * 0.4); 
-            ctx.lineTo(newX, newY); ctx.stroke();
-            
-            if (pointCounter % (TRAIL_EFFECT ? 8 : 4) === 0) {
-                ctx.beginPath(); 
-                ctx.arc(newX, newY, Math.max(0.2, 0.5 + depth * 0.12), 0, Math.PI * 2);
-                ctx.fillStyle = \`hsla(\${(hue + 35) % 360}, \${saturation}%, \${Math.min(95, lightness + 10)}%, \${TRAIL_EFFECT ? 0.6 : 0.8})\`;
-                ctx.fill();
-            }
-
-            if (newX > canvas.width || newX < 0) lastPos.x = Math.random() * canvas.width; 
-            else lastPos.x = newX;
-
-            if (newY > canvas.height || newY < 0) lastPos.y = Math.random() * canvas.height;
-            else lastPos.y = newY;
-            
-            pointCounter++;
-        }
-
-        function animationLoop() {
-            if (TRAIL_EFFECT) {
-                ctx.fillStyle = \`rgba(17, 17, 23, \${FADE_ALPHA})\`;
-                ctx.fillRect(0, 0, canvas.width, canvas.height);
-            }
-            let processedCount = 0;
-            while(dataBuffer.length > 0 && processedCount < MAX_BUFFER_SIZE) {
-                const data = dataBuffer.shift();
-                drawDataPoint(data);
-                processedCount++;
-            }
-            if (dataBuffer.length > 0 || (eventSource && eventSource.readyState !== EventSource.CLOSED)) {
-                 animationFrameId = requestAnimationFrame(animationLoop);
-            } else {
-                animationFrameId = null; 
-            }
-        }
-
-        startButton.addEventListener('click', () => {
-            if (eventSource) eventSource.close(); 
-            if (animationFrameId) cancelAnimationFrame(animationFrameId);
-            clearCanvas(true); 
-            statusMessage.textContent = "Conjuring data stream from orchestrator...";
-            eventSource = new EventSource('fractal_orchestrator.php'); 
-            startButton.disabled = true;
-            stopButton.disabled = false;
-            animationFrameId = requestAnimationFrame(animationLoop); 
-
-            eventSource.onmessage = function(event) {
-                try {
-                    const data = JSON.parse(event.data);
-                    if (data.status && data.status.includes('finished')) {
-                        statusMessage.textContent = "Stream finished: " + data.status;
-                        console.log("Orchestrator reported:", data.status);
-                        if (eventSource) eventSource.close();
-                        startButton.disabled = false;
-                        stopButton.disabled = true;
-                        return;
-                    }
-                    if(data.script_id !== undefined) {
-                        dataBuffer.push(data);
-                        if(pointCounter % 20 === 0) statusMessage.textContent = \`Processing script #\${data.script_id} (depth: \${data.depth}). Buffer: \${dataBuffer.length}\`;
-                    } else if (data.error) {
-                        console.error("Orchestrator error:", data.error, data.details || '');
-                        statusMessage.textContent = "Error from orchestrator: " + data.error;
-                    }
-                } catch (e) { console.error("Error parsing SSE data:", e, event.data); statusMessage.textContent = "Error parsing data.";}
-            };
-            eventSource.onerror = function(err) {
-                console.error("EventSource failed:", err);
-                statusMessage.textContent = "EventSource connection failed or server stream ended.";
-                if(eventSource) eventSource.close();
-                startButton.disabled = false; stopButton.disabled = true;
-                if (animationFrameId) cancelAnimationFrame(animationFrameId);
-            };
-        });
-        stopButton.addEventListener('click', () => {
-            if (eventSource) { eventSource.close(); console.log("EventSource closed."); statusMessage.textContent = "Stream stopped by user.";}
-            if (animationFrameId) cancelAnimationFrame(animationFrameId);
-            startButton.disabled = false; stopButton.disabled = true;
-        });
-        clearButton.addEventListener('click', () => clearCanvas(true));
-    </script>
+  </script>
 </body>
 </html>
-HTML;
+§§kilian_html_delimiter§§;
 }
 
 // --- Helper: Content for fractal_orchestrator.php ---
-// (No changes needed here based on the errors, but using $GLOBALS for emojis passed as params)
+// This orchestrator will now be simpler as the new HTML doesn't use its SSE for drawing.
+// We can keep it as a placeholder or adapt it later if the 3D graph needs external data.
+// For now, let's make it very basic, as it won't be directly used by the new index.html.
 function getFractalOrchestratorPhpContent($pythonSubfolderName, $numPythonScripts, $maxCallDepth, $maxRuntime) {
-    // (Content from previous fully correct version)
+    // For this version, the orchestrator is simplified as the 3D graph is self-contained.
+    // It can still run Python scripts if we want to log their output or use them for something else later.
     return <<<PHP
 <?php
-header('Content-Type: text/event-stream');
+header('Content-Type: text/event-stream'); // Still set for potential future use
 header('Cache-Control: no-cache');
 header('Connection: keep-alive');
 set_time_limit(0); 
@@ -254,352 +240,219 @@ set_time_limit(0);
 
 ob_implicit_flush(true);
 \$startTime = time();
+\$eventCount = 0;
 
-function send_event(\$data) {
+function send_event_orchestrator(\$data) { // Renamed to avoid conflict if this file is included
     echo "data: " . json_encode(\$data) . "\\n\\n";
     if (ob_get_level() > 0) ob_flush();
     flush();
 }
 
-\$queue = [];
-for (\$i = 0; \$i < 7; ++\$i) { 
-    \$start_id = rand(0, \$numPythonScripts - 1);
-    \$start_val = (rand(-2000, 2000) / 100.0); 
-    \$queue[] = ['id' => \$start_id, 'value' => \$start_val, 'depth' => 0];
-}
+error_log("Fractal Orchestrator (v2.3 - 3D Graph Version) started. Max runtime: {\$maxOrchestratorRuntime}s.");
+send_event_orchestrator(['status' => 'Orchestrator alive, but index.html uses self-generated graph data.']);
 
-\$total_events_sent_this_run = 0;
-\$loop_iterations = 0;
-
-while (!empty(\$queue)) {
-    \$loop_iterations++;
+// Minimal loop just to keep alive for the duration or if we want to add Python interaction later
+while(true) {
     if ((time() - \$startTime) >= \$maxOrchestratorRuntime) {
-        send_event(['status' => 'Orchestrator reached max runtime (' . \$maxOrchestratorRuntime . 's). Total events: ' . \$total_events_sent_this_run]);
-        error_log("Fractal_Orchestrator max runtime. Events: {\$total_events_sent_this_run}, Iterations: {\$loop_iterations}");
-        exit(0);
-    }
-    if (connection_aborted()) {
-        error_log("Client disconnected, stopping fractal_orchestrator. Events: {\$total_events_sent_this_run}");
+        send_event_orchestrator(['status' => 'Orchestrator max runtime reached.']);
+        error_log("Fractal Orchestrator reached max runtime.");
         break;
     }
-
-    \$batch_size = min(count(\$queue), 10); 
-    for(\$b = 0; \$b < \$batch_size; \$b++) {
-        if (empty(\$queue)) break;
-        \$current_call = array_shift(\$queue);
-        \$script_id_num = \$current_call['id']; \$input_value = \$current_call['value']; \$depth = \$current_call['depth'];
-        \$script_name = sprintf("script_%03d.py", \$script_id_num);
-        \$script_path = \$pythonProjectFolder . DIRECTORY_SEPARATOR . \$script_name;
-
-        if (!file_exists(\$script_path)) {
-            send_event(['error' => "Script not found: {\$script_path} from " . getcwd(), 'id' => \$script_id_num]);
-            continue;
-        }
-
-        \$escaped_script_path = escapeshellarg(\$script_path);
-        \$escaped_input_value = escapeshellarg((string)\$input_value);
-        \$escaped_depth = escapeshellarg((string)\$depth);
-        \$escaped_num_scripts = escapeshellarg((string)\$numPythonScripts);
-        \$escaped_max_depth = escapeshellarg((string)\$maxCallDepth);
-
-        \$python_executable = 'python3';
-        @exec('python3 --version 2>&1', \$py3_output_dummy, \$py3_ret_dummy);
-        if (\$py3_ret_dummy !== 0) \$python_executable = 'python';
-        
-        \$command = sprintf("%s %s %s %s %s %s", \$python_executable, \$escaped_script_path, \$escaped_input_value, \$escaped_depth, \$escaped_num_scripts, \$escaped_max_depth);
-        
-        \$output_lines = []; \$return_var = null;
-        exec(\$command . ' 2>&1', \$output_lines, \$return_var);
-        \$output_str = implode("\\n", \$output_lines);
-
-        if (\$return_var === 0) {
-            foreach (\$output_lines as \$line) {
-                \$json_data = json_decode(\$line, true);
-                if (is_array(\$json_data) && isset(\$json_data['script_id'])) { 
-                    send_event(\$json_data);
-                    \$total_events_sent_this_run++;
-                    if (isset(\$json_data['next_call_id']) && \$json_data['next_call_id'] !== null && \$json_data['depth'] < (\$maxCallDepth -1) && is_numeric(\$json_data['next_call_id']) && \$json_data['next_call_id'] >= 0 && \$json_data['next_call_id'] < \$numPythonScripts) {
-                        \$next_val = \$json_data['output_value'];
-                        if (abs(\$next_val - \$input_value) < 0.01 || abs(\$next_val) < 0.01 ) {
-                            \$next_val += (rand(-100,100)/50.0) * (\$depth + 1); 
-                            if (abs(\$next_val) < 0.01 && \$next_val != 0) \$next_val = \$next_val > 0 ? 0.1 : -0.1;
-                        }
-                        if(count(\$queue) < 200) { 
-                           \$queue[] = ['id' => (int)\$json_data['next_call_id'], 'value' => \$next_val, 'depth' => \$json_data['depth'] + 1];
-                        }
-                    }
-                }
-            }
-        } else {
-            send_event(['error' => "Script {\$script_name} failed. Ret: {\$return_var}", 'details' => \$output_str, 'id' => \$script_id_num]);
-        }
-    } 
-    usleep(10000); 
+    if (connection_aborted()) {
+        error_log("Client disconnected from orchestrator.");
+        break;
+    }
+    // Send a heartbeat or a simple message periodically if desired
+    // send_event_orchestrator(['heartbeat' => date('H:i:s'), 'message' => 'Orchestrator is idling.']);
+    \$eventCount++;
+    sleep(10); // Check every 10 seconds
 }
-send_event(['status' => 'Orchestration loop finished or queue empty. Total events: ' . \$total_events_sent_this_run]);
-error_log("Fractal_Orchestrator loop finished. Total events: {\$total_events_sent_this_run}, Iterations: {\$loop_iterations}");
+
+error_log("Fractal Orchestrator finished.");
 ?>
 PHP;
 }
 
-// --- Helper: Content for individual Python scripts ---
-// (Using the version from previous response, with M_PI fix and float casting in rand ranges)
+// --- Helper: Content for individual Python scripts (SIMPLIFIED) ---
 function getPythonScriptContent($scriptId, $numTotalScripts, $maxCallDepth) {
-    $ops = [
-        ['name' => 'clifford_attractor_x', 'lambda' => 'math.sin(modifier_a * prev_val_placeholder) + modifier_c * math.cos(modifier_a * val)', 'mod_range' => [], 'custom_modifiers' => ['a' => [-2.0, 2.0, 0.01], 'c' => [-2.0, 2.0, 0.01]]],
-        ['name' => 'clifford_attractor_y', 'lambda' => 'math.sin(modifier_b * val) + modifier_d * math.cos(modifier_b * prev_val_placeholder)', 'mod_range' => [], 'custom_modifiers' => ['b' => [-2.0, 2.0, 0.01], 'd' => [-2.0, 2.0, 0.01]]],
-        ['name' => 'de_jong_attractor_x', 'lambda' => 'math.sin(modifier_a * prev_val_placeholder) - math.cos(modifier_b * val)', 'mod_range' => [], 'custom_modifiers' => ['a' => [-3.0, 3.0, 0.01], 'b' => [-3.0, 3.0, 0.01]]],
-        ['name' => 'de_jong_attractor_y', 'lambda' => 'math.sin(modifier_c * val) - math.cos(modifier_d * prev_val_placeholder)', 'mod_range' => [], 'custom_modifiers' => ['c' => [-3.0, 3.0, 0.01], 'd' => [-3.0, 3.0, 0.01]]],
-        ['name' => 'sine_power_mix', 'lambda' => '(math.sin(val * modifier_freq1) ** int(modifier_pow1)) * modifier_amp1 + (math.cos(prev_val_placeholder * modifier_freq2) ** int(modifier_pow2)) * modifier_amp2', 'mod_range' => [],
-            'custom_modifiers' => [
-                'freq1' => [0.1, 3.0, 0.01], 'pow1' => [1, 3], 'amp1' => [0.5, 5.0, 0.1],
-                'freq2' => [0.1, 3.0, 0.01], 'pow2' => [1, 3], 'amp2' => [0.5, 5.0, 0.1]
-            ]],
-        ['name' => 'swirl_step', 'lambda' => 'val + math.sin(val * 0.1 + current_depth * 0.05 + script_id * 0.01) * modifier_strength + prev_val_placeholder * 0.1', 'mod_range' => [], 'custom_modifiers' => ['strength' => [0.5, 8.0, 0.1]]],
-        ['name' => 'logistic_growth', 'lambda' => 'modifier_r * val * (1.0 - val / modifier_k if modifier_k != 0 else 1.0 - val)', 'mod_range' => [], 'custom_modifiers' => ['r' => [2.8, 4.0, 0.001], 'k' => [10.0, 100.0, 1.0]]],
-        ['name' => 'coupled_logistic_x', 'lambda' => 'modifier_rx * val * (1.0 - val) - modifier_cxy * val * prev_val_placeholder', 'mod_range' => [], 'custom_modifiers' => ['rx' => [3.5, 4.0, 0.001], 'cxy' => [0.01, 0.2, 0.001]]],
-        ['name' => 'lyapunov_exponent_approx', 'lambda' => 'val + math.log(abs(modifier_r - 2.0 * modifier_r * prev_val_placeholder_norm if prev_val_placeholder_norm is not None else modifier_r)) if (modifier_r - 2.0 * modifier_r * (prev_val_placeholder_norm if prev_val_placeholder_norm is not None else 0.5)) != 0 else val',
-            'mod_range' => [], 'custom_modifiers' => ['r' => [3.5, 4.0, 0.001]]],
-    ];
-    $chosen_op_data = $ops[array_rand($ops)];
-    $op_name = $chosen_op_data['name']; $op_lambda = $chosen_op_data['lambda'];
-    $modifier_definitions = ""; $modifier_values_dict_content = ""; $modifier_display_values = "";
-
-    if (isset($chosen_op_data['custom_modifiers'])) {
-        $temp_mod_dict_parts = [];
-        foreach($chosen_op_data['custom_modifiers'] as $mod_name => $range) {
-            $min_r = (float)$range[0]; 
-            $max_r = (float)$range[1]; // M_PI fix applied here already
-            
-            $step_r = isset($range[2]) ? (float)$range[2] : (($max_r - $min_r > 1.0) ? 1.0 : 0.01);
-            if ($step_r == 0) $step_r = ($max_r - $min_r > 1.0) ? 0.1 : 0.001;
-
-            $rand_min_scaled = (int)floor($min_r / $step_r);
-            $rand_max_scaled = (int)floor($max_r / $step_r);
-            if ($rand_min_scaled > $rand_max_scaled) list($rand_min_scaled, $rand_max_scaled) = [$rand_max_scaled, $rand_min_scaled];
-            
-            $mod_val = ($rand_min_scaled == $rand_max_scaled) ? $min_r : round(rand($rand_min_scaled, $rand_max_scaled) * $step_r, 4);
-
-            $modifier_definitions .= "    modifier_{$mod_name} = float({$mod_val})\n";
-            $temp_mod_dict_parts[] = "\"modifier_{$mod_name}\": modifier_{$mod_name}";
-            $modifier_display_values .= "{$mod_name}={$mod_val}, ";
-        }
-        $modifier_values_dict_content = implode(", ", $temp_mod_dict_parts);
-        $modifier_display_values = rtrim($modifier_display_values, ", ");
-    } else { 
-        $min_r_single = (float)$chosen_op_data['mod_range'][0]; $max_r_single = (float)$chosen_op_data['mod_range'][1];
-        if (isset($chosen_op_data['mod_range'][2])) {
-            $step_r_single = (float)$chosen_op_data['mod_range'][2];
-            if ($step_r_single == 0) $step_r_single = 0.1;
-            $rand_min_s_scaled = (int)floor($min_r_single / $step_r_single);
-            $rand_max_s_scaled = (int)floor($max_r_single / $step_r_single);
-            if ($rand_min_s_scaled > $rand_max_s_scaled) list($rand_min_s_scaled, $rand_max_s_scaled) = [$rand_max_s_scaled, $rand_min_s_scaled];
-            $modifier = ($rand_min_s_scaled == $rand_max_s_scaled) ? $min_r_single :round(rand($rand_min_s_scaled, $rand_max_s_scaled) * $step_r_single, 3);
-        } else { $modifier = (float)rand((int)$min_r_single, (int)$max_r_single); }
-        if ($modifier == 0 && ($op_name == 'divide')) $modifier = (rand(0,1)==0 ? 0.01 : -0.01);
-        $modifier_definitions = "    modifier = float({$modifier})";
-        $modifier_values_dict_content = "\"modifier\": modifier";
-        $modifier_display_values = "modifier={$modifier}";
-    }
-    $modifier_values_dict = "{".$modifier_values_dict_content."}";
-
-    $will_call_next = (rand(1, 100) <= 78);
-    $next_script_id_expr = 'None';
-    if ($will_call_next) {
-        $offset_direction = rand(0,1) == 0 ? -1 : 1; $offset_amount = rand(1, max(1, (int)($numTotalScripts / 8)));
-        $next_id_raw = ($scriptId + ($offset_direction * $offset_amount) + $numTotalScripts) % $numTotalScripts;
-        $next_script_id_expr = (string)$next_id_raw;
-    }
-    $prev_val_placeholder_code = 'random.uniform(-0.5, 0.5) # General small random influence';
-    $prev_val_norm_code = '(prev_val_placeholder % 1.0) if prev_val_placeholder is not None else 0.5 # Normalized for Lyapunov';
-    if(!empty($modifier_definitions) && substr($modifier_definitions, -strlen("\n")) !== "\n") {
-        $modifier_definitions .= "\n";
-    }
-    $op_lambda_final = str_replace('prev_val_placeholder_norm', $prev_val_norm_code, $op_lambda);
-
-    return <<<PYTHON
-import sys, json, math, random
-# Script ID $scriptId: Op '$op_name', Modifiers: $modifier_display_values
-op_name = "$op_name" 
-
-def perform_operation(val, current_depth, script_id, prev_val_placeholder, **modifiers):
-    for key, value in modifiers.items(): globals()[key] = float(value) 
-    current_val_for_map = val 
-    if op_name == "logistic_growth": 
-         k_val = modifiers.get("modifier_k", 1.0)
-         if k_val == 0: k_val = 1.0
-         current_val_for_map = (abs(val) % k_val) / k_val 
-         val = current_val_for_map 
-    elif op_name.startswith("ikeda_map"):
-        tn = 0.4 - 6.0 / (1.0 + val**2 + prev_val_placeholder**2)
-    try: 
-        result = $op_lambda_final
-        return result
-    except Exception as e: 
-        return val + random.uniform(-5.0, 5.0) 
-
-if __name__ == "__main__":
-    if len(sys.argv) < 5: print(json.dumps({"error": "Insufficient args", "script_id": $scriptId})); sys.exit(1)
-    input_value, current_depth, num_total_scripts, max_allowed_depth = float(sys.argv[1]), int(sys.argv[2]), int(sys.argv[3]), int(sys.argv[4])
-$modifier_definitions
-    prev_val_placeholder_py = $prev_val_placeholder_code 
-    output_value = perform_operation(input_value, current_depth, $scriptId, prev_val_placeholder_py, **($modifier_values_dict))
-    output_value = max(-1e7, min(1e7, output_value)) 
-    if math.isnan(output_value) or math.isinf(output_value): output_value = random.uniform(-200.0, 200.0)
-
-    next_call_id_py_str = $next_script_id_expr 
-    next_call_id_final = None 
-    if next_call_id_py_str != 'None' and current_depth < (max_allowed_depth -1) and $will_call_next:
-        try:
-            parsed_next_id = int(next_call_id_py_str)
-            if 0 <= parsed_next_id < num_total_scripts: 
-                 next_call_id_final = parsed_next_id
-            else: 
-                 next_call_id_final = random.randint(0, num_total_scripts - 1)
-        except (ValueError, TypeError): 
-            next_call_id_final = random.randint(0, num_total_scripts - 1) 
+    // Drastically simplified Python for now to ensure generator stability
+    $ops = ['add', 'subtract', 'multiply'];
+    $chosen_op = $ops[array_rand($ops)];
+    $modifier = rand(1, 5);
     
-    print(json.dumps({
-        "script_id":$scriptId, "input_value":input_value, "op_type":"$op_name", 
-        "modifiers_used": $modifier_values_dict, "output_value":output_value, 
-        "depth":current_depth, "next_call_id":next_call_id_final, 
-        "num_total_scripts":num_total_scripts
-    }))
-PYTHON;
+    $python_code = "";
+    $python_code .= "import sys, json, random, math\n\n";
+    $python_code .= "def my_operation(val, mod):\n";
+    if ($chosen_op === 'add') {
+        $python_code .= "    return val + mod\n";
+    } elseif ($chosen_op === 'subtract') {
+        $python_code .= "    return val - mod\n";
+    } else { // multiply
+        $python_code .= "    return val * mod\n";
+    }
+    $python_code .= "\n";
+    $python_code .= "if __name__ == \"__main__\":\n";
+    $python_code .= "    input_value = float(sys.argv[1]) if len(sys.argv) > 1 else 1.0\n";
+    $python_code .= "    # Other args (depth, num_scripts, max_depth) are not used by this simple version\n";
+    $python_code .= "    output_value = my_operation(input_value, $modifier)\n";
+    $python_code .= "    # Ensure output is finite and within a reasonable range for the 3D graph if used later\n";
+    $python_code .= "    if math.isnan(output_value) or math.isinf(output_value): output_value = random.uniform(-100, 100)\n";
+    $python_code .= "    output_value = max(-1e5, min(1e5, output_value))\n";
+    $python_code .= "    result = {\n";
+    $python_code .= "        \"script_id\": $scriptId,\n";
+    $python_code .= "        \"input_value\": input_value,\n";
+    $python_code .= "        \"op_type\": \"$chosen_op\",\n";
+    $python_code .= "        \"modifier_used\": $modifier,\n";
+    $python_code .= "        \"output_value\": output_value,\n";
+    $python_code .= "        \"message\": \"Simple Python script $scriptId executed.\"\n";
+    $python_code .= "    }\n";
+    $python_code .= "    print(json.dumps(result))\n";
+
+    return $python_code;
 }
 
-// --- Helper: Content for stop_server.php ---
 function getStopServerPhpContent($outer_serverHost, $outer_portRangeStart, $outer_portRangeEnd, $outer_serverProcessMarker, $outer_routerScriptNameForGrep) {
     global $e_info, $e_ok, $e_warn, $e_stop; 
-    
     $ports_to_check_str_array = [];
     for ($p = $outer_portRangeStart; $p <= $outer_portRangeEnd; $p++) {
         $ports_to_check_str_array[] = (string)$p;
     }
     $ports_to_check_json_for_stop_script = json_encode($ports_to_check_str_array);
-
-    $embedded_serverHost = $outer_serverHost;
-    $embedded_ports_json = $ports_to_check_json_for_stop_script;
-    $embedded_marker = $outer_serverProcessMarker;
-    $embedded_router_name = $outer_routerScriptNameForGrep;
-
+    $embedded_serverHost = addslashes($outer_serverHost);
+    $embedded_ports_json = addslashes($ports_to_check_json_for_stop_script); 
+    $embedded_marker = addslashes($outer_serverProcessMarker);
+    $embedded_router_name = addslashes($outer_routerScriptNameForGrep);
     $stop_e_info = $e_info; $stop_e_ok = $e_ok; $stop_e_warn = $e_warn; $stop_e_stop_glyph = $e_stop;
 
-    return <<<PHP
+    // Using Nowdoc for the stop script to avoid any escaping issues with its internal PHP code
+    $stop_script_template = <<<'PHP_STOP_SCRIPT_NOWDOC'
 <?php
-// stop_fractal_server.php
-\$e_info = "{$stop_e_info}"; \$e_ok = "{$stop_e_ok}"; \$e_warn = "{$stop_e_warn}"; \$e_stop_glyph = "{$stop_e_stop_glyph}";
+// stop_fractal_server.php - Generated
+// These placeholders will be replaced by the generator script
+$_E_INFO_ = '__PHP_E_INFO__'; $_E_OK_ = '__PHP_E_OK__'; 
+$_E_WARN_ = '__PHP_E_WARN__'; $_E_STOP_GLYPH_ = '__PHP_E_STOP_GLYPH__';
 
-echo "\$e_info Attempting to stop PHP built-in server(s) for the Fractal Art project...\\n";
+echo "\$_E_INFO_ Attempting to stop PHP built-in server(s) for the Fractal Art project...\n";
 
-\$php_serverHost = '$embedded_serverHost'; 
-\$php_portsToCheck = json_decode('$embedded_ports_json', true);
-\$php_processMarker = '$embedded_marker'; 
-\$php_routerScriptName = '$embedded_router_name'; 
+\$php_serverHost_val = '__PHP_EMBEDDED_SERVER_HOST__'; 
+\$php_portsToCheck_val = json_decode('__PHP_EMBEDDED_PORTS_JSON__', true);
+\$php_processMarker_val = '__PHP_EMBEDDED_MARKER__'; 
+\$php_routerScriptName_val = '__PHP_EMBEDDED_ROUTER_NAME__'; 
 
 \$killedSomething = false;
 
-function findAndKillProcess(\$port_to_check, \$host_to_check, \$router_script_name_to_grep_param) { // Renamed param
-    global \$e_ok, \$e_warn, \$e_info; 
+function findAndKillProcessForStopScript(\$port_to_check, \$host_param, \$router_script_name_param) { 
+    // Emojis need to be available here, e.g., by defining them globally in this script
+    // or passing them into this function if they were part of the generator's global scope.
+    // For simplicity, let's assume they are defined above or use plain text.
+    // Using the placeholders that will be replaced by actual emoji characters.
+    global \$_E_OK_, \$_E_WARN_, \$_E_INFO_; 
+
     if (stristr(PHP_OS, 'WIN')) {
-        echo "\$e_warn On Windows, please manually stop the PHP server (php.exe) listening on port {\$port_to_check} that was serving '{\$router_script_name_to_grep_param}'. Use Task Manager or Resource Monitor.\\n";
+        echo "\$_E_WARN_ On Windows, please manually stop PHP server on port {\$port_to_check} for '{\$router_script_name_param}'.\n";
         return false;
     } else { 
-        \$grep_pattern = escapeshellarg("php -S {$host_to_check}:{\$port_to_check} {$router_script_name_to_grep_param}");
+        \$grep_pattern = escapeshellarg("php -S {\$host_param}:{\$port_to_check} {\$router_script_name_param}");
         \$cmd_find_php_server = "ps aux | grep " . \$grep_pattern . " | grep -v grep | awk '{print \$2}'";
         \$output_ps = shell_exec(\$cmd_find_php_server);
-        
         if (!empty(\$output_ps)) {
             \$found_pids = array_filter(explode("\\n", trim(\$output_ps)));
             if (empty(\$found_pids) || (count(\$found_pids) == 1 && empty(trim(\$found_pids[0]))) ) {
-                 echo "\$e_info No specific PHP server process found for '{\$router_script_name_to_grep_param}' on port {\$port_to_check} via ps command.\\n";
+                 echo "\$_E_INFO_ No specific server for '{\$router_script_name_param}' on port {\$port_to_check} (ps).\\n";
                  return false;
             }
             foreach (\$found_pids as \$pid_str) {
                 \$pid = trim(\$pid_str);
                 if (is_numeric(\$pid) && \$pid > 0) {
-                    echo "\$e_info Found potential PHP server (PID: {\$pid}) for '{\$router_script_name_to_grep_param}' on port {\$port_to_check}. Attempting to kill...\\n";
+                    echo "\$_E_INFO_ Found server (PID: {\$pid}) for '{\$router_script_name_param}' on port {\$port_to_check}. Killing...\\n";
                     exec("kill -9 " . escapeshellarg(\$pid), \$kill_output, \$kill_return);
-                    if (\$kill_return === 0) {
-                        echo "\$e_ok Successfully sent SIGKILL to PID {\$pid}.\\n";
-                        return true; 
-                    } else {
-                        echo "\$e_warn Failed to kill PID {\$pid} (return: {\$kill_return}). Already stopped or no permissions?\\n";
-                    }
+                    if (\$kill_return === 0) { echo "\$_E_OK_ Killed PID {\$pid}.\\n"; return true; }
+                    else { echo "\$_E_WARN_ Failed to kill PID {\$pid}.\\n"; }
                 }
             }
-        } else {
-             echo "\$e_info No matching PHP server process found for '{\$router_script_name_to_grep_param}' on port {\$port_to_check} (empty ps output).\\n";
-        }
+        } else { echo "\$_E_INFO_ No server for '{\$router_script_name_param}' on port {\$port_to_check} (empty ps output).\\n"; }
     }
     return false; 
 }
-
-\$routerPathForCheck = dirname(__FILE__) . DIRECTORY_SEPARATOR . '..' . DIRECTORY_SEPARATOR . \$php_routerScriptName;
+\$routerPathForCheck = dirname(__FILE__) . DIRECTORY_SEPARATOR . '..' . DIRECTORY_SEPARATOR . \$php_routerScriptName_val;
 if (file_exists(\$routerPathForCheck)) {
-    if (strpos(file_get_contents(\$routerPathForCheck), \$php_processMarker) !== false) {
-        echo "\$e_info Confirmed: Router '{\$php_routerScriptName}' contains marker '{\$php_processMarker}'.\\n";
-    } else {
-        echo "\$e_warn Router '{\$php_routerScriptName}' does NOT contain expected marker. PID matching on command args only.\\n";
-    }
-} else {
-     echo "\$e_warn Router '{\$php_routerScriptName}' not found for marker check. PID matching by command args only.\\n";
-}
-
-foreach(\$php_portsToCheck as \$port_str) {
+    if (strpos(file_get_contents(\$routerPathForCheck), \$php_processMarker_val) !== false) { echo "\$_E_INFO_ Router '{\$php_routerScriptName_val}' contains marker '{\$php_processMarker_val}'.\\n"; }
+    else { echo "\$_E_WARN_ Router '{\$php_routerScriptName_val}' does NOT contain marker!\\n"; }
+} else { echo "\$_E_WARN_ Router '{\$php_routerScriptName_val}' not found for marker check.\\n"; }
+foreach(\$php_portsToCheck_val as \$port_str) {
     \$port_int = (int)\$port_str;
-    if(findAndKillProcess(\$port_int, \$php_serverHost, \$php_routerScriptName)) {
-        \$killedSomething = true;
+    if(findAndKillProcessForStopScript(\$port_int, \$php_serverHost_val, \$php_routerScriptName_val)) { \$killedSomething = true; }
+}
+if (\$killedSomething) { echo "\$_E_OK_ Server stopping finished.\\n"; }
+else { echo "\$_E_INFO_ \$_E_STOP_GLYPH_ No servers automatically stopped. Stop manually if needed.\\n"; }
+?>
+PHP_STOP_SCRIPT_NOWDOC;
+
+    $replacements = [
+        '__PHP_E_INFO__' => $stop_e_info,
+        '__PHP_E_OK__' => $stop_e_ok,
+        '__PHP_E_WARN__' => $stop_e_warn,
+        '__PHP_E_STOP_GLYPH__' => $stop_e_stop_glyph,
+        '__PHP_EMBEDDED_SERVER_HOST__' => $outer_serverHost, // No addslashes for str_replace value
+        '__PHP_EMBEDDED_PORTS_JSON__' => $ports_to_check_json_for_stop_script,
+        '__PHP_EMBEDDED_MARKER__' => $outer_serverProcessMarker,
+        '__PHP_EMBEDDED_ROUTER_NAME__' => $outer_routerScriptNameForGrep,
+    ];
+    $final_stop_script_code = $stop_script_template;
+    foreach($replacements as $placeholder => $value){
+        $final_stop_script_code = str_replace($placeholder, $value, $final_stop_script_code);
     }
+    return $final_stop_script_code;
 }
 
-if (\$killedSomething) {
-    echo "\$e_ok Server stopping process complete. Please verify.\\n";
-} else {
-    echo "\$e_info \$e_stop_glyph No matching server processes were automatically stopped. Please stop manually if needed.\\n";
-}
-?>
-PHP;
-}
 
 // --- Main Generation Logic ---
-// Attempt to stop any old server instance from a previous run if a stop script exists
-// This check is for a folder with the *same base name* from a *previous run today*.
-$potentialOldProjectFolder = $mainProjectFolderNameBase; // Today's base name
-$potentialOldStopScript = $potentialOldProjectFolder . DIRECTORY_SEPARATOR . $serverScriptsSubfolderName . DIRECTORY_SEPARATOR . "stop_fractal_server.php";
+// Always use the fixed folder name, and attempt to clean it first.
+$fixedProjectFolderName = "python_fractal_gen"; // As requested
+$mainProjectFolderName = $fixedProjectFolderName; // Use this throughout
 
-if (is_dir($potentialOldProjectFolder) && file_exists($potentialOldStopScript)) {
-    echo "$e_broom Attempting to stop server from a previous run of '$potentialOldProjectFolder' (if any)...\n";
-    // We need to execute this stop script from within its correct relative directory context if it uses relative paths.
-    // Or, if the stop script is self-contained with absolute paths or robust relative paths, we can run from here.
-    // The current stop script is designed to be run from its own folder (_server_utils) and find router one level up.
-    // For now, let's just try to run it if it exists, user can cd if needed.
-    // More robust would be to `cd` into the old project's _server_utils and run it.
-    // This is a best-effort cleanup.
-    if (is_executable($potentialOldStopScript) || !stristr(PHP_OS_FAMILY, "Windows")) { // Check if executable on non-Windows
-        echo "$e_info Executing: php " . escapeshellarg($potentialOldStopScript) . "\n";
-        system("php " . escapeshellarg($potentialOldStopScript));
+// Attempt to stop any old server instance if the project folder exists from a previous run
+$potentialOldStopScript = $mainProjectFolderName . DIRECTORY_SEPARATOR . $serverScriptsSubfolderName . DIRECTORY_SEPARATOR . "stop_fractal_server.php";
+if (is_dir($mainProjectFolderName) && file_exists($potentialOldStopScript)) {
+    echo "$e_broom Attempting to stop server from existing '$mainProjectFolderName' (if any)...\n";
+    $original_cwd = getcwd();
+    $stopScriptDir = $mainProjectFolderName . DIRECTORY_SEPARATOR . $serverScriptsSubfolderName;
+    if (is_dir($stopScriptDir) && chdir($stopScriptDir)) {
+        echo "$e_info Executing: php stop_fractal_server.php (in context of $serverScriptsSubfolderName)\n";
+        system("php stop_fractal_server.php"); 
+        chdir($original_cwd);
         echo "$e_info Old server stop attempt finished.\n";
+        if (PHP_OS_FAMILY !== 'Windows') sleep(1);
     } else {
-        echo "$e_warn Found old stop script '$potentialOldStopScript' but it's not executable or on Windows. Skipping auto-stop.\n";
+        echo "$e_warn Could not change to '$serverScriptsSubfolderName' directory ('$stopScriptDir'). Skipping auto-stop.\n";
     }
     echo "---------------------------------------------------\n";
 }
 
-
-// Now, create the *new* unique project folder name for *this* run
-$mainProjectFolderName = $mainProjectFolderNameBase . "_" . date('His'); // This makes it unique per second
-
-echo "$e_info Main project will be created in: $mainProjectFolderName\n";
-
-if (!is_dir($mainProjectFolderName)) {
-    if (!mkdir($mainProjectFolderName, 0755, true)) {
-        die("$e_warn ABORT: Failed to create main project directory: $mainProjectFolderName\n");
+// Delete contents of the project folder if it exists, then recreate
+if (is_dir($mainProjectFolderName)) {
+    echo "$e_broom Directory '$mainProjectFolderName' exists. Clearing contents for a fresh generation...\n";
+    // More robust directory clearing
+    function deleteDirectory($dir) {
+        if (!file_exists($dir)) return true;
+        if (!is_dir($dir)) return unlink($dir);
+        foreach (scandir($dir) as $item) {
+            if ($item == '.' || $item == '..') continue;
+            if (!deleteDirectory($dir . DIRECTORY_SEPARATOR . $item)) return false;
+        }
+        return rmdir($dir);
     }
-    echo "$e_ok $e_folder Created main project directory: $mainProjectFolderName\n";
-} else {
-    echo "$e_info $e_folder Main project directory $mainProjectFolderName already exists (should be rare with timestamp).\n";
+    if (!deleteDirectory($mainProjectFolderName)) {
+        die("$e_warn ABORT: Could not clear existing project directory: $mainProjectFolderName. Check permissions.\n");
+    }
+    echo "$e_ok Contents of '$mainProjectFolderName' cleared.\n";
 }
+
+if (!mkdir($mainProjectFolderName, 0755, true)) { // Recreate after clearing
+    die("$e_warn ABORT: Failed to create main project directory: $mainProjectFolderName\n");
+}
+echo "$e_ok $e_folder Created main project directory: $mainProjectFolderName\n";
+
 
 $actualServerPort = null;
 echo "$e_gear Searching for an available port in range $startPort-$endPort...\n";
@@ -617,7 +470,6 @@ for ($portAttempt = 0; $portAttempt < $maxPortRetries; $portAttempt++) {
         echo "$e_info Port $currentTryPort is currently in use.\n";
     }
 }
-
 if ($actualServerPort === null) {
     $actualServerPort = $startPort; 
     echo "$e_warn Could not find an available port. Defaulting to $actualServerPort. Server start may fail.\n";
@@ -693,27 +545,35 @@ echo "---------------------------------------------------\n";
 $serverCommand = sprintf("php -S %s:%d %s", escapeshellarg($serverHost), $actualServerPort, escapeshellarg($routerScriptName) );
 $urlToOpen = "http://$serverHost:$actualServerPort/";
 $projectFullPath = getcwd() . DIRECTORY_SEPARATOR . $mainProjectFolderName;
-$stopScriptRelativePath = $serverScriptsSubfolderName . DIRECTORY_SEPARATOR . $stopServerScriptName;
+// Corrected stop command instruction to reflect the new structure
+$stopCommandInstruction = "php " . escapeshellarg($projectFullPath . DIRECTORY_SEPARATOR . $serverScriptsSubfolderName . DIRECTORY_SEPARATOR . $stopServerScriptName);
+$serverLogFile = $projectFullPath . DIRECTORY_SEPARATOR . "php_server.log";
+
 
 echo "$e_info $e_terminal TO RUN THE FRACTAL ART VISUALIZATION:\n";
 echo "1. This script will ATTEMPT to start the server in the background.\n";
+echo "   $e_log Server output (if any) will be logged to: " . escapeshellarg(basename($projectFullPath) . DIRECTORY_SEPARATOR ."php_server.log") . "\n";
 echo "2. $e_link If successful, your browser should open to: $urlToOpen\n";
 echo "3. Click 'Start Visualization' $e_rocket on the webpage.\n";
 echo "$e_info $e_timer Orchestrator default runtime: ~$defaultMaxOrchestratorRuntime seconds.\n";
 echo "---------------------------------------------------\n";
 echo "$e_info $e_stop TO STOP THE SERVER:\n";
-echo "   Run this command from the directory where this generator script is located:\n";
-echo "   ( cd " . escapeshellarg($projectFullPath . DIRECTORY_SEPARATOR . $serverScriptsSubfolderName) . " && php $stopServerScriptName )\n";
+echo "   Run this exact command from THIS directory ($e_eyes " . getcwd() . " ):\n";
+echo "   $stopCommandInstruction\n";
+echo "   (Alternatively, cd into '$mainProjectFolderName/$serverScriptsSubfolderName' and run 'php $stopServerScriptName')\n";
 echo "   OR stop 'php -S ... $routerScriptName' manually (e.g., Ctrl+C or OS process manager).\n";
 echo "---------------------------------------------------\n";
 
 $backgroundCmd = '';
-$outputRedirect = (PHP_OS_FAMILY === 'Windows' ? ' > NUL 2>&1' : ' > /dev/null 2>&1');
+$serverOutputRedirect = ' > ' . escapeshellarg($serverLogFile) . ' 2>&1';
+
 
 if (PHP_OS_FAMILY === 'Windows') {
-    $backgroundCmd = "start /B \"PHP Fractal Server\" cmd /c \"cd /D " . escapeshellarg($projectFullPath) . " && $serverCommand \"";
+    $phpExe = (shell_exec('where php')) ? 'php' : ( (shell_exec('where php.exe')) ? 'php.exe' : 'php' );
+    $serverCommandWin = sprintf("%s -S %s:%d %s", $phpExe, escapeshellarg($serverHost), $actualServerPort, escapeshellarg($routerScriptName) );
+    $backgroundCmd = "start /B \"PHP Fractal Server\" cmd /c \"cd /D " . escapeshellarg($projectFullPath) . " && $serverCommandWin $serverOutputRedirect\"";
 } else { 
-    $backgroundCmd = "(cd " . escapeshellarg($projectFullPath) . " && exec $serverCommand $outputRedirect) &";
+    $backgroundCmd = "(cd " . escapeshellarg($projectFullPath) . " && exec $serverCommand $serverOutputRedirect) &";
 }
 
 echo "$e_rocket Attempting to start PHP server in background ($serverHost:$actualServerPort)...\n";
@@ -721,12 +581,19 @@ shell_exec($backgroundCmd);
 sleep(3); 
 
 echo "$e_eyes Checking if server started on $urlToOpen ...\n";
-$context = stream_context_create(['http' => ['timeout' => 2.5, 'ignore_errors' => true]]); 
+$context_options = ['http' => ['timeout' => 3.0, 'ignore_errors' => true]];
+if (defined('HHVM_VERSION')) { 
+    $context_options['http']['user_agent'] = 'PHP script';
+}
+$context = stream_context_create($context_options); 
 $headers = @get_headers($urlToOpen, 0, $context); 
-if ($headers && isset($headers[0]) && strpos($headers[0], '200') !== false) {
-    echo "$e_ok Server seems to have started successfully!\n";
+
+if ($headers && isset($headers[0]) && (strpos($headers[0], '200') !== false || strpos($headers[0], '301') !== false || strpos($headers[0], '302') !== false) ) {
+    echo "$e_ok Server seems to have started successfully (responded with: $headers[0])!\n";
 } else {
     echo "$e_warn Server might not have started or is not reachable at $urlToOpen.\n";
+    echo "$e_warn Response headers: " . ($headers ? implode("|", $headers) : "No response") . "\n";
+    echo "$e_warn Check the server log: " . escapeshellarg(basename($projectFullPath) . DIRECTORY_SEPARATOR ."php_server.log") . "\n";
     echo "$e_warn If it failed, try starting it manually from the terminal:\n";
     echo "   cd " . escapeshellarg($projectFullPath) . "\n";
     echo "   php -S $serverHost:$actualServerPort " . escapeshellarg($routerScriptName) . "\n";
@@ -739,7 +606,8 @@ elseif (PHP_OS_FAMILY === 'Windows') $opener = 'start ""';
 elseif (PHP_OS_FAMILY === 'Linux') $opener = 'xdg-open';
 
 if ($opener) {
-    @system($opener . ' ' . escapeshellarg($urlToOpen) . ($opener === 'start ""' ? '' : ' > /dev/null 2>&1'));
+    $browserCmd = ($opener === 'start ""') ? $opener . ' ' . escapeshellarg($urlToOpen) : $opener . ' ' . escapeshellarg($urlToOpen);
+    @system($browserCmd . ($opener === 'start ""' ? '' : ' > /dev/null 2>&1'));
     echo "$e_link If browser didn't open, please navigate to the URL manually.\n";
 } else {
     echo "$e_warn Could not determine OS to auto-open browser. Please open: $urlToOpen\n";

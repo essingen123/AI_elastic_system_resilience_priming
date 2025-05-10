@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <style>
+    body { margin: 0; }
+    #controls {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      z-index: 100;
+      background: rgba(0,0,0,0.5);
+      padding: 10px;
+      border-radius: 5px;
+    }
+    #controls button, #controls input, #controls label {
+      margin: 5px;
+      color: white; /* Basic styling for controls */
+    }
+    #status {
+        position: absolute;
+        bottom: 10px;
+        left: 10px;
+        color: lightgrey;
+        font-family: sans-serif;
+        font-size: 0.8em;
+        background: rgba(0,0,0,0.5);
+        padding: 5px;
+        border-radius: 3px;
+    }
+  </style>
+  <script src="//cdn.jsdelivr.net/npm/3d-force-graph"></script>
+</head>
+<body>
+  <div id="3d-graph"></div>
+  <div id="controls">
+    <button id="emit-particles-btn">Emit 10 Particles</button>
+    <button id="reset-graph-btn">New Random Graph</button>
+    <label for="num-nodes">Nodes:</label>
+    <input type="number" id="num-nodes" value="50" min="10" max="300" style="width: 60px;">
+  </div>
+  <div id="status">Graph Ready. Click links or Emit Particles.</div>
+
+  <script>
+    const graphElem = document.getElementById('3d-graph');
+    const statusElem = document.getElementById('status');
+    let N = 50; // Default number of nodes
+    let gData = { nodes: [], links: [] };
+
+    const Graph = ForceGraph3D()(graphElem)
+      .linkDirectionalParticles(2)
+      .linkDirectionalParticleWidth(2.5)
+      .linkDirectionalParticleColor(() => 'rgba(255,0,0,0.8)')
+      .linkHoverPrecision(10)
+      .onLinkClick(link => Graph.emitParticle(link));
+
+    function generateRandomGraph(numNodes) {
+      gData.nodes = [...Array(numNodes).keys()].map(i => ({ 
+        id: i,
+        val: Math.random() * 5 + 1 // Random value for node size/color later
+      }));
+      gData.links = [...Array(numNodes).keys()]
+        .filter(id => id > 0) // Node 0 has no source target in this simple model
+        .map(id => ({
+          source: id,
+          target: Math.round(Math.random() * (id - 1)),
+          value: Math.random() // For particle speed or link strength
+        }));
+      Graph.graphData(gData)
+           .nodeVal('val') // Use 'val' for node size
+           .nodeColor(node => { // Color based on ID or val
+                const hue = (node.id * 360 / numNodes) % 360;
+                return `hsl(${hue}, 80%, 60%)`;
+           })
+           .linkWidth(link => 0.2 + link.value * 1.5)
+           .linkDirectionalParticleSpeed(link => link.value * 0.01 + 0.005);
+      statusElem.textContent = `Generated graph with ${numNodes} nodes.`;
+    }
+    
+    document.getElementById('emit-particles-btn').addEventListener('click', () => {
+      if (!gData.links.length) return;
+      let count = 0;
+      const interval = setInterval(() => {
+        if (count >= 10) {
+          clearInterval(interval);
+          return;
+        }
+        const link = gData.links[Math.floor(Math.random() * gData.links.length)];
+        Graph.emitParticle(link);
+        count++;
+      }, 100); // Emit particles with a slight delay
+      statusElem.textContent = 'Emitting 10 random particles...';
+    });
+
+    document.getElementById('reset-graph-btn').addEventListener('click', () => {
+        N = parseInt(document.getElementById('num-nodes').value) || 50;
+        generateRandomGraph(N);
+    });
+    
+    // Initial graph
+    N = parseInt(document.getElementById('num-nodes').value) || 50;
+    generateRandomGraph(N);
+
+    // Adjust graph size to window
+    Graph.width(window.innerWidth);
+    Graph.height(window.innerHeight);
+    window.addEventListener('resize', () => {
+        Graph.width(window.innerWidth);
+        Graph.height(window.innerHeight);
+    });
+
+    // Optional: camera orbit
+    // let angle = 0;
+    // setInterval(() => {
+    //   Graph.cameraPosition({
+    //     x: 200 * Math.sin(angle),
+    //     z: 200 * Math.cos(angle)
+    //   });
+    //   angle += Math.PI / 300;
+    // }, 40);
+
+  </script>
+</body>
+</html>

@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Python Fractal Math Art 🎨</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@1/css/pico.min.css">
+    <style>
+        :root { 
+            --background-color: #11191f; --color: #bbb; --h1-color: #fff; --muted-color: #789;
+            --primary: #00bcd4; --primary-hover: #00acc1; --card-background-color: #1a242f;
+            --card-border-color: #2c3a47; --form-element-background-color: #1a242f;
+            --form-element-border-color: #2c3a47; --form-element-focus-color: var(--primary);
+        }
+        body { margin: 0; display: flex; flex-direction: column; align-items: center; min-height: 100vh; background-color: var(--background-color); color: var(--color); font-family: 'Segoe UI', sans-serif; }
+        canvas { border: 1px solid var(--card-border-color); background-color: #0d1117; max-width: 90vw; max-height: 75vh; box-shadow: 0 0 25px rgba(0, 200, 255, 0.25); touch-action: none; }
+        header, footer { text-align: center; margin: 1em; }
+        header h1 { color: var(--h1-color); }
+        footer p { color: var(--muted-color); font-size: 0.9em;}
+        .controls { margin-bottom: 1em; padding: 0.75em; background-color: var(--card-background-color); border-radius: 8px; display: flex; gap: 0.5em; flex-wrap: wrap; justify-content: center;}
+        button { margin: 0.2em; font-size: 0.9em;}
+        .container { padding: 1em; max-width: 1000px; width: 100%;}
+        #statusMessage { font-style: italic; color: var(--muted-color); font-size: 0.9em; min-height: 1.3em; margin-top: 0.5em; text-align: center; }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Python Fractal Math Art 🎨</h1>
+        <p>Emergent patterns from chained Python math operations.</p>
+    </header>
+    <main class="container">
+        <div class="controls">
+            <button id="startButton" class="primary">Start Visualization 🚀</button>
+            <button id="stopButton" class="secondary" disabled>Stop Stream 🛑</button>
+            <button id="clearButton" class="contrast">Clear Canvas 🧹</button>
+        </div>
+        <div id="statusMessage">Ready to weave some math magic...</div>
+        <canvas id="fractalCanvas" width="900" height="650"></canvas>
+    </main>
+    <footer>
+        <p>Crafted with Python 🐍, PHP 🐘, JavaScript, and Pico.css</p>
+    </footer>
+    <script>
+        const canvas = document.getElementById('fractalCanvas');
+        const ctx = canvas.getContext('2d');
+        const startButton = document.getElementById('startButton');
+        const stopButton = document.getElementById('stopButton');
+        const clearButton = document.getElementById('clearButton');
+        const statusMessage = document.getElementById('statusMessage');
+        let eventSource = null;
+        
+        let lastPos = { x: canvas.width / 2, y: canvas.height / 2 };
+        let hue = Math.random() * 360;
+        let pointCounter = 0;
+        let animationFrameId = null;
+        let dataBuffer = [];
+        const MAX_BUFFER_SIZE = 10; 
+        const TRAIL_EFFECT = true; 
+        const FADE_ALPHA = 0.025;
+
+        function clearCanvas(fullClear = true) {
+            if (animationFrameId) cancelAnimationFrame(animationFrameId);
+            dataBuffer = [];
+            if (fullClear) {
+                ctx.fillStyle = '#0d1117';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+            }
+            lastPos = { x: canvas.width * (0.45 + Math.random() * 0.1), y: canvas.height * (0.45 + Math.random() * 0.1) };
+            hue = Math.random() * 360;
+            pointCounter = 0;
+            statusMessage.textContent = "Canvas cleared. Ready for a new vision.";
+        }
+        clearCanvas(); 
+
+        function drawDataPoint(data) {
+            const value = parseFloat(data.output_value);
+            const depth = parseInt(data.depth);
+            const scriptId = parseInt(data.script_id);
+            const opType = data.op_type || 'unknown';
+
+            let normValue = (value % 200 - 100) / 100;
+            if (isNaN(normValue) || !isFinite(normValue)) normValue = Math.random() * 2 - 1;
+
+            let angleOffset = Math.random() * 0.1 - 0.05;
+            if (opType.includes('sine') || opType.includes('cos')) angleOffset += Math.PI / (4 + depth);
+            if (opType.includes('spiral')) angleOffset += scriptId * 0.005 * (depth + 1);
+
+            const angle = (normValue * Math.PI * 1.7) + (scriptId % 90 * Math.PI / 45) + (depth * 0.2 * (pointCounter % 2 === 0 ? 1 : -0.8)) + angleOffset;
+            const distance = 1 + (Math.abs(normValue) * 20) + (depth * 3.5) + (Math.cos(pointCounter * 0.02) * 6) + (scriptId % 7); 
+            
+            const newX = lastPos.x + Math.cos(angle) * distance;
+            const newY = lastPos.y + Math.sin(angle) * distance;
+            
+            ctx.beginPath(); ctx.moveTo(lastPos.x, lastPos.y);
+            
+            hue = (hue + Math.abs(scriptId % 10 - 5) + (normValue * 15) + (depth * 0.8) + Math.random()*5 ) % 360;
+            const saturation = Math.min(100, 50 + (depth * 10) + Math.abs(normValue)*40); 
+            const lightness = Math.min(90, Math.max(20, 55 + (normValue * 25) - (depth*3) )); 
+            
+            ctx.strokeStyle = `hsla(${hue}, ${saturation}%, ${lightness}%, ${TRAIL_EFFECT ? 0.5 : 0.7})`; // JS template literals are fine here
+            ctx.lineWidth = Math.max(0.05, 0.15 + depth * 0.15 + Math.abs(normValue) * 0.3); 
+            ctx.lineTo(newX, newY); ctx.stroke();
+            
+            if (pointCounter % (TRAIL_EFFECT ? 10 : 5) === 0) {
+                ctx.beginPath(); 
+                ctx.arc(newX, newY, Math.max(0.1, 0.4 + depth * 0.1), 0, Math.PI * 2);
+                ctx.fillStyle = `hsla(${(hue + 40) % 360}, ${saturation}%, ${Math.min(95, lightness + 15)}%, ${TRAIL_EFFECT ? 0.65 : 0.85})`;
+                ctx.fill();
+            }
+
+            if (newX > canvas.width || newX < 0) lastPos.x = Math.random() * canvas.width; 
+            else lastPos.x = newX;
+            if (newY > canvas.height || newY < 0) lastPos.y = Math.random() * canvas.height;
+            else lastPos.y = newY;
+            
+            pointCounter++;
+        }
+
+        function animationLoop() {
+            if (TRAIL_EFFECT) {
+                ctx.fillStyle = `rgba(13, 17, 23, ${FADE_ALPHA})`;
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+            }
+            let processedCount = 0;
+            while(dataBuffer.length > 0 && processedCount < MAX_BUFFER_SIZE) {
+                const data = dataBuffer.shift();
+                drawDataPoint(data);
+                processedCount++;
+            }
+            if (dataBuffer.length > 0 || (eventSource && eventSource.readyState !== EventSource.CLOSED)) {
+                 animationFrameId = requestAnimationFrame(animationLoop);
+            } else {
+                animationFrameId = null; 
+            }
+        }
+
+        startButton.addEventListener('click', () => {
+            if (eventSource && eventSource.readyState !== EventSource.CLOSED) eventSource.close(); 
+            if (animationFrameId) cancelAnimationFrame(animationFrameId);
+            clearCanvas(true); 
+            statusMessage.textContent = "Conjuring data stream from orchestrator...";
+            eventSource = new EventSource('fractal_orchestrator.php'); 
+            startButton.disabled = true;
+            stopButton.disabled = false;
+            if (!animationFrameId) animationFrameId = requestAnimationFrame(animationLoop); 
+
+            eventSource.onopen = function() {
+                console.log("Connection to stream opened.");
+                statusMessage.textContent = "Data stream connected. Visualizing...";
+            };
+
+            eventSource.onmessage = function(event) {
+                try {
+                    const data = JSON.parse(event.data);
+                    if (data.status && data.status.includes('finished')) {
+                        statusMessage.textContent = "Stream finished: " + data.status;
+                        console.log("Orchestrator reported:", data.status);
+                        if (eventSource) eventSource.close();
+                        startButton.disabled = false;
+                        stopButton.disabled = true;
+                        return;
+                    }
+                    if(data.script_id !== undefined) {
+                        dataBuffer.push(data);
+                        if(pointCounter % 50 === 0) statusMessage.textContent = `Processing script #${data.script_id} (depth: ${data.depth}). Buffer: ${dataBuffer.length}`;
+                        if (!animationFrameId && (dataBuffer.length > 0 || (eventSource && eventSource.readyState === EventSource.OPEN))) {
+                            animationFrameId = requestAnimationFrame(animationLoop);
+                        }
+                    } else if (data.error) {
+                        console.error("Orchestrator error:", data.error, data.details || '');
+                        statusMessage.textContent = "Error from orchestrator: " + data.error;
+                    }
+                } catch (e) { console.error("Error parsing SSE data:", e, "Data:", event.data); statusMessage.textContent = "Error parsing data.";}
+            };
+            eventSource.onerror = function(err) {
+                console.error("EventSource failed:", err);
+                statusMessage.textContent = "EventSource connection error or server stream ended.";
+                if(eventSource) eventSource.close();
+                startButton.disabled = false; stopButton.disabled = true;
+                if (animationFrameId) cancelAnimationFrame(animationFrameId);
+            };
+        });
+        stopButton.addEventListener('click', () => {
+            if (eventSource) { eventSource.close(); console.log("EventSource closed."); statusMessage.textContent = "Stream stopped by user.";}
+            if (animationFrameId) cancelAnimationFrame(animationFrameId);
+            startButton.disabled = false; stopButton.disabled = true;
+        });
+        clearButton.addEventListener('click', () => clearCanvas(true));
+    </script>
+    </script>
+</body>
+</html>

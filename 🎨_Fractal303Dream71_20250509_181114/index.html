@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Python Fractal Math Art 🎨 (with Logging)</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@1/css/pico.min.css">
+    <style>
+        :root { 
+            --background-color: #11191f; --color: #bbb; --h1-color: #fff; --muted-color: #789;
+            --primary: #00bcd4; --primary-hover: #00acc1; --card-background-color: #1a242f;
+            --card-border-color: #2c3a47; --form-element-background-color: #1a242f;
+            --form-element-border-color: #2c3a47; --form-element-focus-color: var(--primary);
+        }
+        body { 
+            margin: 0; 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            min-height: 100vh; 
+            background-color: var(--background-color); 
+            color: var(--color); 
+            font-family: 'Segoe UI', sans-serif; 
+        }
+        .canvas-container {
+            width: 100%; 
+            display: flex; 
+            justify-content: center;
+            align-items: center;
+            margin-bottom: 1em; 
+        }
+        canvas { 
+            border: 1px solid var(--card-border-color); 
+            background-color: #0d1117; 
+            display: block; 
+            width: 100%; 
+            min-width: 300px; 
+            max-height: 70vh; /* Adjusted slightly for log space */
+            box-shadow: 0 0 25px rgba(0, 200, 255, 0.25); 
+            touch-action: none; 
+        }
+        header, footer { text-align: center; margin: 1em; }
+        header h1 { color: var(--h1-color); }
+        footer p { color: var(--muted-color); font-size: 0.9em;}
+        .controls { 
+            margin-bottom: 1em; 
+            padding: 0.75em; 
+            background-color: var(--card-background-color); 
+            border-radius: 8px; 
+            display: flex; 
+            gap: 0.5em; 
+            flex-wrap: wrap; 
+            justify-content: center;
+        }
+        button { margin: 0.2em; font-size: 0.9em;}
+        .container { padding: 1em; max-width: 1000px; width: 100%;} 
+        #statusMessage { 
+            font-style: italic; 
+            color: var(--muted-color); 
+            font-size: 0.9em; 
+            min-height: 1.3em; 
+            margin-top: 0.5em; 
+            text-align: center; 
+        }
+        /* Log container styling */
+        .log-container {
+            width: 100%;
+            max-height: 150px; /* Max height for the log box */
+            overflow-y: auto; /* Enable vertical scroll if content exceeds max-height */
+            background-color: #161b22; /* Slightly different background for distinction */
+            border: 1px solid var(--card-border-color);
+            border-radius: 6px;
+            padding: 0.75em;
+            margin-top: 1em; /* Space above the log container */
+            font-size: 0.8em;
+            color: #99a; /* Lighter muted color for log text */
+            box-shadow: inset 0 0 10px rgba(0,0,0,0.3);
+        }
+        .log-container p {
+            margin: 0.3em 0;
+            padding: 0.2em 0.4em;
+            border-bottom: 1px dashed #30363d; /* Subtle separator */
+            font-family: 'Consolas', 'Courier New', Courier, monospace; /* Monospace font */
+            line-height: 1.4;
+            word-break: break-all; /* Prevent long messages from breaking layout */
+        }
+        .log-container p:last-child {
+            border-bottom: none; /* No border for the last entry */
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Python Fractal Math Art 🎨</h1>
+        <p>Emergent patterns from chained Python math operations.</p>
+    </header>
+    <main class="container">
+        <div class="controls">
+            <button id="startButton" class="primary">Start Visualization 🚀</button>
+            <button id="stopButton" class="secondary" disabled>Stop Stream 🛑</button>
+            <button id="clearButton" class="contrast">Clear Canvas 🧹</button>
+        </div>
+        <div id="statusMessage">Ready to weave some math magic...</div>
+        <div class="canvas-container">
+             <canvas id="fractalCanvas"></canvas>
+        </div>
+        <div id="logContainer" class="log-container">
+            </div>
+    </main>
+    <footer>
+        <p>Crafted with Python 🐍, PHP 🐘, JavaScript, and Pico.css</p>
+    </footer>
+    <script>
+        const canvas = document.getElementById('fractalCanvas');
+        const ctx = canvas.getContext('2d');
+        const startButton = document.getElementById('startButton');
+        const stopButton = document.getElementById('stopButton');
+        const clearButton = document.getElementById('clearButton');
+        const statusMessage = document.getElementById('statusMessage');
+        const logContainer = document.getElementById('logContainer'); // Get the log container
+        
+        let eventSource = null;
+        let lastPos = { x: 0, y: 0 };
+        let hue = Math.random() * 360;
+        let pointCounter = 0;
+        let animationFrameId = null;
+        let dataBuffer = [];
+        const MAX_BUFFER_SIZE = 8; 
+        const TRAIL_EFFECT = true; 
+        const FADE_ALPHA = 0.03; 
+        const MAX_LOG_ENTRIES = 50; // Maximum number of log entries to display
+
+        // Function to add a new entry to the log
+        function addLogEntry(message) {
+            if (!logContainer) return; // Safety check
+
+            const now = new Date();
+            // HH:MM:SS format
+            const timestamp = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+
+            const logEntry = document.createElement('p');
+            logEntry.textContent = `[${timestamp}] ${message}`;
+
+            // Prepend new entry so it appears at the top
+            logContainer.insertBefore(logEntry, logContainer.firstChild); 
+
+            // Limit the number of log entries
+            if (logContainer.children.length > MAX_LOG_ENTRIES) {
+                logContainer.removeChild(logContainer.lastChild); // Remove the oldest entry
+            }
+        }
+        
+        // Function to update status message and log it
+        function updateStatus(message) {
+            statusMessage.textContent = message;
+            addLogEntry(message);
+        }
+
+        // Function to clear the canvas
+        function clearCanvas(fullClear = true) {
+            if (animationFrameId) {
+                cancelAnimationFrame(animationFrameId);
+                animationFrameId = null;
+            }
+            dataBuffer = []; 
+
+            if (fullClear) {
+                ctx.fillStyle = '#0d1117'; 
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+            }
+            lastPos = { 
+                x: canvas.width * (0.4 + Math.random() * 0.2), 
+                y: canvas.height * (0.4 + Math.random() * 0.2) 
+            };
+            hue = Math.random() * 360; 
+            pointCounter = 0; 
+            updateStatus("Canvas cleared. Ready for a new vision.");
+        }
+
+        // Function to resize the canvas and clear it
+        function resizeCanvasAndClear() {
+            const displayWidth = canvas.clientWidth;
+            const displayHeight = canvas.clientHeight;
+
+            if (canvas.width !== displayWidth || canvas.height !== displayHeight) {
+                canvas.width = displayWidth;   
+                canvas.height = displayHeight; 
+                console.log(`Canvas drawing surface resized to: ${canvas.width}x${canvas.height}`);
+            }
+            clearCanvas(true); // This will also log "Canvas cleared..."
+            // We want a specific message for initial ready state or resize.
+            // clearCanvas logs its own message, so we might get two log entries if we log here too.
+            // Let's ensure the initial state message is logged properly.
+            // The `clearCanvas` call above will log "Canvas cleared...", so we can update status after.
+            updateStatus(`Canvas ready at ${canvas.width}x${canvas.height}.`);
+        }
+        
+        // Function to draw a single data point
+        function drawDataPoint(data) {
+            const value = parseFloat(data.output_value);
+            const depth = parseInt(data.depth);
+            const scriptId = parseInt(data.script_id);
+            const opType = data.op_type || 'unknown';
+
+            let normValue = (value % 200 - 100) / 100;
+            if (isNaN(normValue) || !isFinite(normValue)) normValue = Math.random() * 2 - 1;
+
+            let angleOffset = 0;
+            if (opType.includes('sine') || opType.includes('cos')) angleOffset = Math.PI / 4;
+            if (opType.includes('spiral')) angleOffset = scriptId * 0.01;
+
+            const angle = (normValue * Math.PI * 1.5) + (scriptId % 180 * Math.PI / 90) + (depth * 0.15 * (pointCounter % 3 === 0 ? 1 : -1)) + angleOffset;
+            const distance = 2 + (Math.abs(normValue) * 18) + (depth * 3.0) + (Math.cos(pointCounter * 0.03) * 5) + (scriptId % 5); 
+            
+            const newX = lastPos.x + Math.cos(angle) * distance;
+            const newY = lastPos.y + Math.sin(angle) * distance;
+            
+            ctx.beginPath(); 
+            ctx.moveTo(lastPos.x, lastPos.y);
+            
+            hue = (hue + Math.abs(scriptId % 15 - 7.5) + (normValue * 12) + (depth * 0.7) ) % 360;
+            const saturation = Math.min(100, 45 + (depth * 9) + Math.abs(normValue)*35); 
+            const lightness = Math.min(90, Math.max(25, 60 + (normValue * 20) - (depth*2.5) )); 
+            
+            ctx.strokeStyle = `hsla(${hue}, ${saturation}%, ${lightness}%, ${TRAIL_EFFECT ? 0.45 : 0.65})`;
+            ctx.lineWidth = Math.max(0.1, 0.2 + depth * 0.18 + Math.abs(normValue) * 0.4); 
+            ctx.lineTo(newX, newY); 
+            ctx.stroke();
+            
+            if (pointCounter % (TRAIL_EFFECT ? 8 : 4) === 0) {
+                ctx.beginPath(); 
+                ctx.arc(newX, newY, Math.max(0.2, 0.5 + depth * 0.12), 0, Math.PI * 2);
+                ctx.fillStyle = `hsla(${(hue + 35) % 360}, ${saturation}%, ${Math.min(95, lightness + 10)}%, ${TRAIL_EFFECT ? 0.6 : 0.8})`;
+                ctx.fill();
+            }
+
+            if (newX > canvas.width || newX < 0 || isNaN(newX)) lastPos.x = Math.random() * canvas.width; 
+            else lastPos.x = newX;
+
+            if (newY > canvas.height || newY < 0 || isNaN(newY)) lastPos.y = Math.random() * canvas.height;
+            else lastPos.y = newY;
+            
+            pointCounter++;
+        }
+
+        // Main animation loop
+        function animationLoop() {
+            if (TRAIL_EFFECT) {
+                ctx.fillStyle = `rgba(13, 17, 23, ${FADE_ALPHA})`; 
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+            }
+            
+            let processedCount = 0;
+            while(dataBuffer.length > 0 && processedCount < MAX_BUFFER_SIZE) {
+                const data = dataBuffer.shift(); 
+                drawDataPoint(data);
+                processedCount++;
+            }
+            
+            if (dataBuffer.length > 0 || (eventSource && eventSource.readyState === EventSource.OPEN)) {
+                 animationFrameId = requestAnimationFrame(animationLoop);
+            } else {
+                animationFrameId = null; 
+            }
+        }
+
+        // Event listener for the start button
+        startButton.addEventListener('click', () => {
+            if (eventSource && eventSource.readyState !== EventSource.CLOSED) {
+                 eventSource.close(); 
+            }
+            if (animationFrameId) {
+                cancelAnimationFrame(animationFrameId); 
+                animationFrameId = null;
+            }
+            
+            resizeCanvasAndClear(); // This will set and log "Canvas ready..."
+            updateStatus("Conjuring data stream from orchestrator...");
+            
+            eventSource = new EventSource('fractal_orchestrator.php'); 
+            
+            startButton.disabled = true;
+            stopButton.disabled = false;
+            
+            if (!animationFrameId) {
+                animationFrameId = requestAnimationFrame(animationLoop); 
+            }
+
+            eventSource.onopen = function() {
+                console.log("Connection to stream opened.");
+                updateStatus("Data stream connected. Visualizing...");
+            };
+
+            eventSource.onmessage = function(event) {
+                try {
+                    const data = JSON.parse(event.data);
+                    if (data.status && data.status.includes('finished')) {
+                        updateStatus("Stream finished: " + data.status);
+                        console.log("Orchestrator reported:", data.status);
+                        if (eventSource) eventSource.close();
+                        startButton.disabled = false;
+                        stopButton.disabled = true;
+                        return;
+                    }
+                    if(data.script_id !== undefined) { 
+                        dataBuffer.push(data);
+                        if(pointCounter % 50 === 0) { // Log less frequently for performance
+                             updateStatus(`Processing script #${data.script_id} (depth: ${data.depth}). Buffer: ${dataBuffer.length}`);
+                        }
+                        if (!animationFrameId && (dataBuffer.length > 0 || (eventSource && eventSource.readyState === EventSource.OPEN))) {
+                            animationFrameId = requestAnimationFrame(animationLoop);
+                        }
+                    } else if (data.error) {
+                        console.error("Orchestrator error:", data.error, data.details || '');
+                        updateStatus("Error from orchestrator: " + data.error);
+                    } else if (data.message) { 
+                        console.log("Orchestrator message:", data.message);
+                        // updateStatus(data.message); // Optionally log general messages
+                    }
+                } catch (e) { 
+                    console.error("Error parsing SSE data:", e, "Data:", event.data); 
+                    updateStatus("Error parsing incoming data.");
+                }
+            };
+            
+            eventSource.onerror = function(err) {
+                console.error("EventSource failed:", err);
+                updateStatus("Stream connection error or ended abruptly.");
+                if(eventSource) eventSource.close();
+                startButton.disabled = false; 
+                stopButton.disabled = true;
+                if (animationFrameId) { 
+                    cancelAnimationFrame(animationFrameId);
+                    animationFrameId = null;
+                }
+            };
+        });
+        
+        // Event listener for the stop button
+        stopButton.addEventListener('click', () => {
+            if (eventSource) { 
+                eventSource.close(); 
+                console.log("EventSource closed by user."); 
+                updateStatus("Stream stopped by user.");
+            }
+            if (animationFrameId) { 
+                cancelAnimationFrame(animationFrameId);
+                animationFrameId = null;
+            }
+            startButton.disabled = false; 
+            stopButton.disabled = true;
+        });
+        
+        // Event listener for the clear button
+        clearButton.addEventListener('click', () => {
+            clearCanvas(true); // clearCanvas already calls updateStatus
+        });
+
+        // Initial setup when the DOM is fully loaded
+        document.addEventListener('DOMContentLoaded', () => {
+            // Log the initial message that's hardcoded in HTML
+            if (statusMessage.textContent) {
+                addLogEntry(statusMessage.textContent);
+            }
+            resizeCanvasAndClear(); // This will also log its status
+
+            let resizeDebounceTimer;
+            window.addEventListener('resize', () => {
+                clearTimeout(resizeDebounceTimer);
+                resizeDebounceTimer = setTimeout(() => {
+                    console.log("Window resize detected, adjusting canvas...");
+                    resizeCanvasAndClear(); 
+                }, 250); 
+            });
+        });
+    </script>
+</body>
+</html>
